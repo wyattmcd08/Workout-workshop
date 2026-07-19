@@ -1,0 +1,115 @@
+@import 'tailwindcss';
+
+/* ------------------------------------------------------------------ */
+/* Dialed Dawg design tokens — dark-only, Apple-inspired               */
+/* ------------------------------------------------------------------ */
+@theme {
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --font-rounded:
+    'SF Pro Rounded', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Surfaces */
+  --color-bg: #09090b;
+  --color-surface: #141417;
+  --color-surface-raised: #1d1d22;
+  --color-surface-sunken: #0e0e11;
+
+  /* Text */
+  --color-content: #f4f4f5;
+  --color-content-secondary: #9d9da6;
+  --color-content-tertiary: #63636b;
+
+  /* Hairlines */
+  --color-divider: rgb(255 255 255 / 0.08);
+
+  /* iOS system palette (dark) */
+  --color-accent: #30d158;
+  --color-accent-muted: rgb(48 209 88 / 0.14);
+  --color-blue: #0a84ff;
+  --color-orange: #ff9f0a;
+  --color-red: #ff453a;
+  --color-yellow: #ffd60a;
+  --color-teal: #64d2ff;
+  --color-purple: #bf5af2;
+  --color-pink: #ff375f;
+
+  /* Radii */
+  --radius-card: 1.375rem;
+  --radius-control: 0.875rem;
+
+  /* Shadows — soft, barely-there */
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.25);
+}
+
+/* Safe-area utilities */
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+@utility pb-tabbar {
+  /* tab bar height + safe area + breathing room */
+  padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Base */
+html {
+  color-scheme: dark;
+  background-color: var(--color-bg);
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-bg);
+  color: var(--color-content);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+#root {
+  min-height: 100dvh;
+}
+
+input,
+textarea,
+select,
+button {
+  font: inherit;
+  color: inherit;
+}
+
+/* Remove number input spinners */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
