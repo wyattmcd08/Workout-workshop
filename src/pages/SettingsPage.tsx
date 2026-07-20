@@ -6,6 +6,7 @@ import { Screen } from '@/components/ui/Screen'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { exportAllData, importAllData } from '@/services/dataTransfer'
 import { useSettingsStore } from '@/store/settingsStore'
+import { repairAndReload } from '@/utils/repair'
 import type { UnitSystem } from '@/types'
 import { cn } from '@/utils/cn'
 
@@ -191,6 +192,22 @@ export default function SettingsPage() {
             <p className="text-center text-[11px] leading-relaxed text-content-tertiary">
               Everything is stored on this device. Export regularly to keep a backup — cloud sync
               is on the roadmap.
+            </p>
+          </Card>
+        </section>
+
+        <section>
+          <SectionHeader title="App" />
+          <Card className="flex flex-col gap-2.5">
+            <Button variant="secondary" fullWidth onClick={() => void repairAndReload()}>
+              Repair &amp; Update App
+            </Button>
+            <p className="text-center text-[11px] leading-relaxed text-content-tertiary">
+              Clears cached app files and reloads the latest version from the server. Your
+              workouts, nutrition, and settings are kept.
+            </p>
+            <p className="text-center text-[11px] text-content-tertiary">
+              Build {__BUILD_STAMP__}
             </p>
           </Card>
         </section>

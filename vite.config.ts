@@ -10,12 +10,13 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      // 'prompt' generates a SW WITHOUT skipWaiting/clientsClaim. A new
-      // deploy installs in the background and activates on the next cold
-      // start. 'autoUpdate' let the new SW seize live pages and delete the
-      // old precache mid-session; the page's next lazy chunk then 404'd
-      // (immutable deploys) and forced a visible reload — the deploy bug.
-      registerType: 'prompt',
+      // autoUpdate keeps every client on the newest deploy without needing
+      // a full app restart (prompt mode left stale clients stuck until the
+      // PWA was force-closed — unreliable on iOS). The known cost — a live
+      // page can lose its old precache mid-session and 404 a lazy chunk —
+      // is handled by the vite:preloadError self-heal in main.tsx, so the
+      // worst case is one automatic reload instead of a black screen.
+      registerType: 'autoUpdate',
       includeAssets: ['icons/icon.svg', 'icons/apple-touch-icon.png'],
       manifest: {
         name: 'Dialed Dawg',
@@ -48,6 +49,11 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, 'src'),
     },
+  },
+  define: {
+    __BUILD_STAMP__: JSON.stringify(
+      `${new Date().toISOString().slice(0, 16).replace('T', ' ')} UTC`,
+    ),
   },
   build: {
     target: 'es2020',
