@@ -22,6 +22,31 @@ export async function repairAndReload(): Promise<void> {
   }
 }
 
+/**
+ * Deletes the IndexedDB database entirely and reloads. Last resort for a
+ * corrupted store (persistent 'UnknownError: Unable to open cursor' on iOS
+ * that survives reloads) — WebKit corruption is only fixed by recreating
+ * the database. Erases logged data on this device; the caller must warn.
+ */
+export async function resetDatabaseAndReload(): Promise<void> {
+  try {
+    // Close our connection first so deleteDatabase isn't blocked.
+    const { db } = await import('@/services/db')
+    db.close()
+  } catch {
+    // If the db module itself is broken, deletion below still applies.
+  }
+  await new Promise<void>((resolve) => {
+    const request = indexedDB.deleteDatabase('dialed-dawg')
+    request.onsuccess = () => resolve()
+    request.onerror = () => resolve()
+    request.onblocked = () => resolve()
+    // Never hang the recovery path on a stuck deletion.
+    setTimeout(resolve, 4000)
+  })
+  window.location.reload()
+}
+
 const RECOVERY_KEY = 'dialed-dawg-chunk-recovery-at'
 const TRANSIENT_RETRY_KEY = 'dialed-dawg-transient-retry-at'
 
