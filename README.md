@@ -4,9 +4,22 @@ An all-in-one fitness operating system for iPhone, built as an offline-capable P
 Workouts, recovery, nutrition, hydration, and body metrics feed one connected local
 data layer — designed to grow into meal prep, AI coaching, analytics, and more.
 
-## Status — Phase 2: Training depth & body map
+## Status — Phase 3: Analytics
 
 Shipped and working end-to-end:
+
+- **Analytics module** (More → Analytics) — weekly training volume chart,
+  per-exercise deep dives (estimated 1RM trend chart, best set, session
+  history, total volume), and **Progress Watch**: rule-based plateau detection
+  comparing each lift's best e1RM over the last 3 weeks against the 3 weeks
+  prior, flagging progressing / plateaued / regressing lifts with actionable
+  guidance.
+- **Deployment hardening** — root-caused and fixed the Netlify flash-then-blank
+  bug (service worker update takeover); added `netlify.toml` with explicit
+  build settings, SPA fallback, and correct cache headers. Verified across the
+  full SW lifecycle including live redeploys under an open session and offline.
+
+### Phase 2 — Training depth & body map
 
 - **Body map** — interactive front/back muscle diagram on Recovery; every muscle
   region is colored by live fatigue (green → yellow → red) and tappable for

@@ -30,7 +30,12 @@ const MODULES: ModuleRow[] = [
   { label: 'Meal Prep', description: 'Recipes, planning, shopping lists', icon: ShoppingBagIcon },
   { label: 'AI Coach', description: 'Personalized guidance across your data', icon: SparklesIcon },
   { label: 'Peptides', description: 'Dosing, schedules, inventory', icon: BeakerIcon },
-  { label: 'Analytics', description: 'Deep dives and strength trends', icon: ChartPieIcon },
+  {
+    label: 'Analytics',
+    description: 'Strength trends, volume, plateau watch',
+    icon: ChartPieIcon,
+    to: '/more/analytics',
+  },
   { label: 'Calendar', description: 'Everything on one timeline', icon: CalendarDaysIcon },
 ]
 
