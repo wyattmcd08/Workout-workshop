@@ -21,7 +21,12 @@ function RouteFallback() {
 
 export default function App() {
   useEffect(() => {
-    void syncSeedExercises()
+    // Best-effort: seed sync retries on next launch if IndexedDB is flaky,
+    // and persistent storage asks iOS not to evict our data/caches.
+    syncSeedExercises().catch(() => undefined)
+    if (navigator.storage?.persist) {
+      navigator.storage.persist().catch(() => undefined)
+    }
   }, [])
 
   return (

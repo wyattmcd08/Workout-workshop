@@ -23,6 +23,21 @@ export async function repairAndReload(): Promise<void> {
 }
 
 const RECOVERY_KEY = 'dialed-dawg-chunk-recovery-at'
+const TRANSIENT_RETRY_KEY = 'dialed-dawg-transient-retry-at'
+
+/**
+ * One guarded reload for transient IndexedDB failures (WebKit dropping the
+ * database connection). A reload reopens the connection cleanly. Returns
+ * false when a reload already happened in the last minute — the caller
+ * should then surface a real error UI instead of looping.
+ */
+export function attemptTransientRecovery(): boolean {
+  const last = Number(sessionStorage.getItem(TRANSIENT_RETRY_KEY) ?? 0)
+  if (Date.now() - last < 60_000) return false
+  sessionStorage.setItem(TRANSIENT_RETRY_KEY, String(Date.now()))
+  window.location.reload()
+  return true
+}
 
 /**
  * Handles a failed lazy-chunk load (fires as Vite's `vite:preloadError`).

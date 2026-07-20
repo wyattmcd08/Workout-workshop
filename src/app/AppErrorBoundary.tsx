@@ -1,5 +1,6 @@
 import { Component, type ReactNode } from 'react'
-import { repairAndReload } from '@/utils/repair'
+import { isTransientIdbError } from '@/services/idbResilience'
+import { attemptTransientRecovery, repairAndReload } from '@/utils/repair'
 
 interface AppErrorBoundaryProps {
   children: ReactNode
@@ -19,6 +20,13 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
 
   static getDerivedStateFromError(error: Error): AppErrorBoundaryState {
     return { error }
+  }
+
+  componentDidCatch(error: Error) {
+    // Transient WebKit IndexedDB failures (connection dropped after
+    // backgrounding) clear on a fresh load. Retry once per minute
+    // automatically; only a repeat failure shows the recovery screen.
+    if (isTransientIdbError(error)) attemptTransientRecovery()
   }
 
   render() {
