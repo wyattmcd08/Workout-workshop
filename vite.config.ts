@@ -10,7 +10,12 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt' generates a SW WITHOUT skipWaiting/clientsClaim. A new
+      // deploy installs in the background and activates on the next cold
+      // start. 'autoUpdate' let the new SW seize live pages and delete the
+      // old precache mid-session; the page's next lazy chunk then 404'd
+      // (immutable deploys) and forced a visible reload — the deploy bug.
+      registerType: 'prompt',
       includeAssets: ['icons/icon.svg', 'icons/apple-touch-icon.png'],
       manifest: {
         name: 'Dialed Dawg',
@@ -35,6 +40,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        cleanupOutdatedCaches: true,
       },
     }),
   ],
