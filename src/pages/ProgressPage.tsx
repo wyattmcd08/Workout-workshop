@@ -9,11 +9,12 @@ import { SectionHeader } from '@/components/ui/SectionHeader'
 import { AddWeightSheet } from '@/features/progress/components/AddWeightSheet'
 import { WeightChart } from '@/features/progress/components/WeightChart'
 import { useWeightEntries } from '@/features/progress/hooks/useWeightEntries'
+import { FEATURED_LIFTS, useExercisePRs } from '@/features/progress/hooks/useStrengthStats'
 import { useRecentWorkouts } from '@/features/workout/hooks/useWorkoutData'
 import { useSettingsStore, useUnitSystem } from '@/store/settingsStore'
-import { kgToLb, formatWeight } from '@/utils/units'
+import { formatWeight, kgToLb, toDisplayWeight, weightUnitLabel } from '@/utils/units'
 import { formatSigned } from '@/utils/format'
-import { parseDateKey } from '@/utils/date'
+import { formatShortDate, parseDateKey } from '@/utils/date'
 
 interface WeekBucket {
   label: string
@@ -52,6 +53,7 @@ export default function ProgressPage() {
   const unitSystem = useUnitSystem()
   const weightEntries = useWeightEntries(90)
   const weeklyTraining = useWeeklyTraining()
+  const exercisePRs = useExercisePRs()
   const weeklyGoal = useSettingsStore((s) => s.profile.weeklyWorkoutGoal)
   const [sheetOpen, setSheetOpen] = useState(false)
 
@@ -100,6 +102,41 @@ export default function ProgressPage() {
               />
             </Card>
           )}
+        </section>
+
+        <section>
+          <SectionHeader title="Strength" />
+          <div className="grid grid-cols-3 gap-3">
+            {FEATURED_LIFTS.map((lift) => {
+              const pr = exercisePRs?.get(lift.exerciseId)
+              return (
+                <Card key={lift.exerciseId} className="flex flex-col gap-0.5 py-4 text-center">
+                  <p className="text-[12px] font-semibold text-content-secondary">
+                    {lift.shortName}
+                  </p>
+                  {pr ? (
+                    <>
+                      <p className="text-[20px] leading-tight font-bold tabular-nums">
+                        {Math.round(toDisplayWeight(pr.bestE1rmKg, unitSystem))}
+                      </p>
+                      <p className="text-[10px] text-content-tertiary">
+                        est. 1RM {weightUnitLabel(unitSystem)}
+                      </p>
+                      <p className="mt-1 text-[10px] text-content-tertiary tabular-nums">
+                        {Math.round(toDisplayWeight(pr.bestWeightKg, unitSystem))} × {pr.bestReps}{' '}
+                        · {formatShortDate(pr.achievedAt)}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-[20px] leading-tight font-bold text-content-tertiary">—</p>
+                      <p className="text-[10px] text-content-tertiary">not logged yet</p>
+                    </>
+                  )}
+                </Card>
+              )
+            })}
+          </div>
         </section>
 
         <section>

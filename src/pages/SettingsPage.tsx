@@ -20,6 +20,7 @@ export default function SettingsPage() {
   const setUnitSystem = useSettingsStore((s) => s.setUnitSystem)
   const setTargets = useSettingsStore((s) => s.setTargets)
   const setWeeklyWorkoutGoal = useSettingsStore((s) => s.setWeeklyWorkoutGoal)
+  const setDefaultRestSeconds = useSettingsStore((s) => s.setDefaultRestSeconds)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [transferMessage, setTransferMessage] = useState<string | null>(null)
@@ -125,20 +126,38 @@ export default function SettingsPage() {
                 onBlur={(e) => updateTarget('fatG', e.target.value)}
               />
             </div>
-            <Field
-              label="Workouts per week"
-              type="number"
-              inputMode="numeric"
-              min={1}
-              max={14}
-              defaultValue={profile.weeklyWorkoutGoal}
-              onBlur={(e) => {
-                const value = Number(e.target.value)
-                if (Number.isInteger(value) && value >= 1 && value <= 14) {
-                  setWeeklyWorkoutGoal(value)
-                }
-              }}
-            />
+            <div className="grid grid-cols-2 gap-3">
+              <Field
+                label="Workouts per week"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={14}
+                defaultValue={profile.weeklyWorkoutGoal}
+                onBlur={(e) => {
+                  const value = Number(e.target.value)
+                  if (Number.isInteger(value) && value >= 1 && value <= 14) {
+                    setWeeklyWorkoutGoal(value)
+                  }
+                }}
+              />
+              <Field
+                label="Rest timer"
+                type="number"
+                inputMode="numeric"
+                suffix="sec"
+                min={15}
+                max={600}
+                step={15}
+                defaultValue={profile.defaultRestSeconds}
+                onBlur={(e) => {
+                  const value = Number(e.target.value)
+                  if (Number.isFinite(value) && value >= 15 && value <= 600) {
+                    setDefaultRestSeconds(Math.round(value))
+                  }
+                }}
+              />
+            </div>
           </Card>
         </section>
 

@@ -1,11 +1,25 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { BoltIcon, BookOpenIcon, ChevronRightIcon, PlayIcon } from '@heroicons/react/24/solid'
+import {
+  BoltIcon,
+  BookmarkIcon,
+  BookOpenIcon,
+  CheckIcon,
+  ChevronRightIcon,
+  PlayIcon,
+  TrashIcon,
+} from '@heroicons/react/24/solid'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Screen } from '@/components/ui/Screen'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { useRecentWorkouts, useTemplates } from '@/features/workout/hooks/useWorkoutData'
+import {
+  createTemplateFromWorkout,
+  deleteTemplate,
+  touchTemplate,
+} from '@/features/workout/services/templates'
 import { useUnitSystem } from '@/store/settingsStore'
 import { useWorkoutSessionStore } from '@/store/workoutSessionStore'
 import { formatDuration, formatRelativeDay } from '@/utils/date'
@@ -20,6 +34,7 @@ export default function WorkoutPage() {
   const session = useWorkoutSessionStore((s) => s.session)
   const startEmpty = useWorkoutSessionStore((s) => s.startEmpty)
   const startFromTemplate = useWorkoutSessionStore((s) => s.startFromTemplate)
+  const [savedTemplateFor, setSavedTemplateFor] = useState<string | null>(null)
 
   const start = () => {
     if (!session) startEmpty()
@@ -74,21 +89,33 @@ export default function WorkoutPage() {
             <SectionHeader title="Templates" />
             <div className="flex flex-col gap-2.5">
               {templates.map((template) => (
-                <Card
-                  key={template.id}
-                  onPress={() => {
-                    startFromTemplate(template)
-                    navigate('/workout/active')
-                  }}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
+                <Card key={template.id}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0 flex-1">
                       <p className="text-[15px] font-semibold">{template.name}</p>
-                      <p className="mt-0.5 text-[12px] text-content-secondary">
+                      <p className="mt-0.5 truncate text-[12px] text-content-secondary">
                         {template.exercises.map((e) => e.exerciseName).join(' · ')}
                       </p>
                     </div>
-                    <PlayIcon className="size-4 shrink-0 text-accent" />
+                    <button
+                      type="button"
+                      aria-label={`Delete template ${template.name}`}
+                      onClick={() => void deleteTemplate(template.id)}
+                      className="flex size-9 shrink-0 items-center justify-center rounded-xl text-content-tertiary"
+                    >
+                      <TrashIcon className="size-4" />
+                    </button>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        startFromTemplate(template)
+                        void touchTemplate(template.id)
+                        navigate('/workout/active')
+                      }}
+                    >
+                      <PlayIcon className="size-3.5" />
+                      Start
+                    </Button>
                   </div>
                 </Card>
               ))}
@@ -111,24 +138,48 @@ export default function WorkoutPage() {
                   <p className="mb-2 truncate text-[12px] text-content-secondary">
                     {workout.exercises.map((e) => e.exerciseName).join(' · ')}
                   </p>
-                  <div className="flex gap-4 text-[12px] text-content-secondary">
-                    <span>
-                      <span className="font-semibold text-content tabular-nums">
-                        {workout.totalSets}
-                      </span>{' '}
-                      sets
-                    </span>
-                    <span>
-                      <span className="font-semibold text-content tabular-nums">
-                        {formatCompact(toDisplayWeight(workout.totalVolumeKg, unitSystem))}
-                      </span>{' '}
-                      {weightUnitLabel(unitSystem)} volume
-                    </span>
-                    <span>
-                      <span className="font-semibold text-content tabular-nums">
-                        {formatDuration(workout.durationSeconds)}
+                  <div className="flex items-center justify-between">
+                    <div className="flex gap-4 text-[12px] text-content-secondary">
+                      <span>
+                        <span className="font-semibold text-content tabular-nums">
+                          {workout.totalSets}
+                        </span>{' '}
+                        sets
                       </span>
-                    </span>
+                      <span>
+                        <span className="font-semibold text-content tabular-nums">
+                          {formatCompact(toDisplayWeight(workout.totalVolumeKg, unitSystem))}
+                        </span>{' '}
+                        {weightUnitLabel(unitSystem)} volume
+                      </span>
+                      <span>
+                        <span className="font-semibold text-content tabular-nums">
+                          {formatDuration(workout.durationSeconds)}
+                        </span>
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void createTemplateFromWorkout(workout).then(() =>
+                          setSavedTemplateFor(workout.id),
+                        )
+                      }}
+                      disabled={savedTemplateFor === workout.id}
+                      className="flex items-center gap-1 text-[12px] font-semibold text-accent disabled:text-content-tertiary"
+                    >
+                      {savedTemplateFor === workout.id ? (
+                        <>
+                          <CheckIcon className="size-3.5" />
+                          Saved
+                        </>
+                      ) : (
+                        <>
+                          <BookmarkIcon className="size-3.5" />
+                          Template
+                        </>
+                      )}
+                    </button>
                   </div>
                 </Card>
               ))}

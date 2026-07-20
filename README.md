@@ -4,9 +4,26 @@ An all-in-one fitness operating system for iPhone, built as an offline-capable P
 Workouts, recovery, nutrition, hydration, and body metrics feed one connected local
 data layer — designed to grow into meal prep, AI coaching, analytics, and more.
 
-## Status — Phase 1: Foundation
+## Status — Phase 2: Training depth & body map
 
 Shipped and working end-to-end:
+
+- **Body map** — interactive front/back muscle diagram on Recovery; every muscle
+  region is colored by live fatigue (green → yellow → red) and tappable for
+  readiness %, last-trained, and time-to-full-recovery detail.
+- **Rest timer** — completing a set starts a configurable countdown (Settings →
+  Rest timer) pinned above the tab bar, with +30s and skip. Survives navigation
+  and reloads.
+- **Set types** — tap a set's number to cycle Working → Warmup → Drop; warmups
+  are excluded from volume, fatigue, and PR calculations.
+- **Templates** — save any completed workout as a template from History, start
+  workouts from templates, delete templates.
+- **Strength PRs** — Progress shows estimated 1RM (Epley) cards for Bench,
+  Squat, and Deadlift with the best set and date that produced each.
+- **Device pass** — verified at iPhone 15/16 (393×852), 16 Pro (402×874), and
+  Pro Max-class (440×956) logical viewports.
+
+### Phase 1 — Foundation
 
 - **App shell** — bottom tab navigation (Home · Workout · Recovery · Nutrition · Progress · More), HashRouter, lazy-loaded routes, safe-area/notch handling, 100dvh layout, dark-only Apple-inspired design system.
 - **Home** — calories remaining ring, macro rings, today's workout, day streak, body readiness, weekly goal, hydration quick-add, 30-day weight trend.
@@ -18,6 +35,16 @@ Shipped and working end-to-end:
 
 Roadmap modules (Meal Prep, AI Coach, Peptides, Analytics, Calendar) are visible
 under **More** and marked "Soon".
+
+### Roadmap decisions (locked in, not yet built)
+
+- **AI Coach** will run on **Claude Sonnet** (Anthropic API), called through a
+  small serverless proxy (Vercel/Cloudflare Workers) so the API key never ships
+  to devices. The proxy is also the future home of accounts, sync, and coach
+  memory. The coach will read the same local domain model (workouts, recovery,
+  nutrition, progress) to ground its answers.
+- **Analytics** grows into the full progressive-overload page: per-exercise
+  e1RM trend charts, weekly volume by muscle, plateau detection.
 
 ## Tech stack
 

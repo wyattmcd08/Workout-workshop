@@ -5,10 +5,11 @@ import { CheckIcon, PlusIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/s
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { ExercisePickerSheet } from '@/features/workout/components/ExercisePickerSheet'
+import { RestTimerBar } from '@/features/workout/components/RestTimerBar'
 import { saveCompletedWorkout } from '@/features/workout/services/workoutLog'
-import { useUnitSystem } from '@/store/settingsStore'
+import { useSettingsStore, useUnitSystem } from '@/store/settingsStore'
 import { useWorkoutSessionStore } from '@/store/workoutSessionStore'
-import type { UnitSystem, WorkoutSet } from '@/types'
+import type { SetType, UnitSystem, WorkoutSet } from '@/types'
 import { cn } from '@/utils/cn'
 import { formatDuration } from '@/utils/date'
 import { fromDisplayWeight, toDisplayWeight, weightUnitLabel } from '@/utils/units'
@@ -23,23 +24,43 @@ function useElapsedSeconds(startedAt: number | undefined): number {
   return Math.max(0, Math.round((now - startedAt) / 1000))
 }
 
+const NEXT_SET_TYPE: Record<SetType, SetType> = {
+  working: 'warmup',
+  warmup: 'drop',
+  drop: 'working',
+}
+
 interface SetRowProps {
   index: number
+  /** 1-based position among working/drop sets; warmups are labeled W. */
+  workingNumber: number
   set: WorkoutSet
   unitSystem: UnitSystem
   onUpdate: (patch: Partial<Omit<WorkoutSet, 'id'>>) => void
   onRemove: () => void
 }
 
-function SetRow({ index, set, unitSystem, onUpdate, onRemove }: SetRowProps) {
+function SetRow({ index, workingNumber, set, unitSystem, onUpdate, onRemove }: SetRowProps) {
   const displayWeight =
     set.weightKg !== null ? Number(toDisplayWeight(set.weightKg, unitSystem).toFixed(1)) : ''
 
+  const typeLabel = set.type === 'warmup' ? 'W' : set.type === 'drop' ? 'D' : String(workingNumber)
+
   return (
     <div className="flex items-center gap-2">
-      <span className="w-6 text-center text-[13px] font-semibold text-content-tertiary tabular-nums">
-        {index + 1}
-      </span>
+      <button
+        type="button"
+        aria-label={`Set ${index + 1} type: ${set.type}. Tap to change.`}
+        onClick={() => onUpdate({ type: NEXT_SET_TYPE[set.type] })}
+        className={cn(
+          'flex size-8 shrink-0 items-center justify-center rounded-lg text-[13px] font-bold tabular-nums transition-colors',
+          set.type === 'warmup' && 'bg-yellow/15 text-yellow',
+          set.type === 'drop' && 'bg-purple/15 text-purple',
+          set.type === 'working' && 'text-content-tertiary',
+        )}
+      >
+        {typeLabel}
+      </button>
       <input
         type="number"
         inputMode="decimal"
@@ -103,6 +124,8 @@ export default function ActiveWorkoutPage() {
   const updateSet = useWorkoutSessionStore((s) => s.updateSet)
   const finish = useWorkoutSessionStore((s) => s.finish)
   const cancel = useWorkoutSessionStore((s) => s.cancel)
+  const startRest = useWorkoutSessionStore((s) => s.startRest)
+  const defaultRestSeconds = useSettingsStore((s) => s.profile.defaultRestSeconds)
 
   const [pickerOpen, setPickerOpen] = useState(false)
   const [confirmingCancel, setConfirmingCancel] = useState(false)
@@ -167,16 +190,24 @@ export default function ActiveWorkoutPage() {
                   </button>
                 </div>
                 <div className="flex flex-col gap-2">
-                  {exercise.sets.map((set, index) => (
-                    <SetRow
-                      key={set.id}
-                      index={index}
-                      set={set}
-                      unitSystem={unitSystem}
-                      onUpdate={(patch) => updateSet(exercise.id, set.id, patch)}
-                      onRemove={() => removeSet(exercise.id, set.id)}
-                    />
-                  ))}
+                  {exercise.sets.map((set, index) => {
+                    const workingNumber =
+                      exercise.sets.slice(0, index + 1).filter((s) => s.type !== 'warmup').length
+                    return (
+                      <SetRow
+                        key={set.id}
+                        index={index}
+                        workingNumber={workingNumber}
+                        set={set}
+                        unitSystem={unitSystem}
+                        onUpdate={(patch) => {
+                          updateSet(exercise.id, set.id, patch)
+                          if (patch.completed === true) startRest(defaultRestSeconds)
+                        }}
+                        onRemove={() => removeSet(exercise.id, set.id)}
+                      />
+                    )
+                  })}
                 </div>
                 <button
                   type="button"
@@ -196,6 +227,8 @@ export default function ActiveWorkoutPage() {
           Add Exercise
         </Button>
       </div>
+
+      <RestTimerBar />
 
       <ExercisePickerSheet
         open={pickerOpen}

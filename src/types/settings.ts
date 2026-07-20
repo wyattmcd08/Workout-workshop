@@ -14,6 +14,8 @@ export interface UserProfile {
   targets: DailyTargets
   /** Workouts per week the user is aiming for. */
   weeklyWorkoutGoal: number
+  /** Rest timer length started after completing a set. */
+  defaultRestSeconds: number
 }
 
 export const DEFAULT_PROFILE: UserProfile = {
@@ -27,4 +29,5 @@ export const DEFAULT_PROFILE: UserProfile = {
     waterMl: 3000,
   },
   weeklyWorkoutGoal: 4,
+  defaultRestSeconds: 120,
 }

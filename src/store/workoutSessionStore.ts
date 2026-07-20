@@ -11,8 +11,17 @@ export interface ActiveSession {
   exercises: WorkoutExercise[]
 }
 
+export interface RestTimer {
+  endsAt: number
+  totalSeconds: number
+}
+
 interface WorkoutSessionState {
   session: ActiveSession | null
+  restTimer: RestTimer | null
+  startRest: (seconds: number) => void
+  extendRest: (seconds: number) => void
+  clearRest: () => void
   startEmpty: () => void
   startFromTemplate: (template: WorkoutTemplate) => void
   addExercise: (exercise: Exercise) => void
@@ -65,6 +74,23 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>()(
   persist(
     (set, get) => ({
       session: null,
+      restTimer: null,
+
+      startRest: (seconds) =>
+        set({ restTimer: { endsAt: Date.now() + seconds * 1000, totalSeconds: seconds } }),
+
+      extendRest: (seconds) =>
+        set((state) => {
+          if (!state.restTimer) return state
+          return {
+            restTimer: {
+              endsAt: state.restTimer.endsAt + seconds * 1000,
+              totalSeconds: state.restTimer.totalSeconds + seconds,
+            },
+          }
+        }),
+
+      clearRest: () => set({ restTimer: null }),
 
       startEmpty: () =>
         set({ session: { name: 'Workout', startedAt: Date.now(), exercises: [] } }),
@@ -170,7 +196,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>()(
           .filter((exercise) => exercise.sets.length > 0)
 
         if (exercises.length === 0) {
-          set({ session: null })
+          set({ session: null, restTimer: null })
           return null
         }
 
@@ -186,11 +212,11 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>()(
           totalVolumeKg: workoutVolumeKg(exercises),
           totalSets: completedSetCount(exercises),
         }
-        set({ session: null })
+        set({ session: null, restTimer: null })
         return workout
       },
 
-      cancel: () => set({ session: null }),
+      cancel: () => set({ session: null, restTimer: null }),
     }),
     { name: 'dialed-dawg-active-workout' },
   ),

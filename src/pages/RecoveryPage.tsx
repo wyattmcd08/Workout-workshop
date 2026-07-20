@@ -1,10 +1,13 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { Card } from '@/components/ui/Card'
 import { ProgressRing } from '@/components/ui/ProgressRing'
 import { Screen } from '@/components/ui/Screen'
 import { SectionHeader } from '@/components/ui/SectionHeader'
+import { BodyMap } from '@/features/recovery/components/BodyMap'
+import { readinessTierColor } from '@/features/recovery/utils/colors'
 import { overallReadiness, useRecoveryStates } from '@/features/recovery/hooks/useRecovery'
-import type { MuscleRecoveryState, MuscleRegion } from '@/types'
+import type { MuscleGroup, MuscleRecoveryState, MuscleRegion } from '@/types'
 import { MUSCLE_LABELS, MUSCLE_REGIONS } from '@/types'
 import { formatRelativeDay } from '@/utils/date'
 
@@ -14,17 +17,20 @@ const REGION_ORDER: Array<{ region: MuscleRegion; label: string }> = [
   { region: 'lower', label: 'Lower Body' },
 ]
 
-function readinessColor(readiness: number): string {
-  if (readiness >= 70) return 'var(--color-accent)'
-  if (readiness >= 40) return 'var(--color-yellow)'
-  return 'var(--color-red)'
-}
-
 function readinessSummary(score: number): string {
   if (score >= 85) return 'Fully recovered. Great day to push heavy.'
   if (score >= 65) return 'Mostly recovered. Train hard, mind the sore spots.'
   if (score >= 40) return 'Carrying fatigue. Favor fresh muscle groups today.'
   return 'Deep fatigue. Prioritize rest, sleep, and light movement.'
+}
+
+function recoveryEta(state: MuscleRecoveryState): string {
+  if (state.hoursToFullRecovery < 1) return 'Fully recovered'
+  if (state.hoursToFullRecovery < 24) {
+    return `~${Math.ceil(state.hoursToFullRecovery)}h to full recovery`
+  }
+  const days = state.hoursToFullRecovery / 24
+  return `~${days.toFixed(days < 2 ? 1 : 0)}d to full recovery`
 }
 
 function MuscleRow({ state }: { state: MuscleRecoveryState }) {
@@ -40,7 +46,7 @@ function MuscleRow({ state }: { state: MuscleRecoveryState }) {
       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/8">
         <div
           className="h-full rounded-full transition-all duration-500"
-          style={{ width: `${readiness}%`, backgroundColor: readinessColor(readiness) }}
+          style={{ width: `${readiness}%`, backgroundColor: readinessTierColor(readiness) }}
         />
       </div>
       <span className="w-10 text-right text-[13px] font-semibold tabular-nums">{readiness}%</span>
@@ -50,7 +56,13 @@ function MuscleRow({ state }: { state: MuscleRecoveryState }) {
 
 export default function RecoveryPage() {
   const states = useRecoveryStates()
+  const [selected, setSelected] = useState<MuscleGroup | null>(null)
   const score = states ? overallReadiness(states) : 100
+
+  const selectedState = useMemo(
+    () => states?.find((s) => s.muscle === selected) ?? null,
+    [states, selected],
+  )
 
   const grouped = useMemo(() => {
     const byRegion = new Map<MuscleRegion, MuscleRecoveryState[]>()
@@ -74,7 +86,7 @@ export default function RecoveryPage() {
             progress={score / 100}
             size={96}
             strokeWidth={9}
-            color={readinessColor(score)}
+            color={readinessTierColor(score)}
           >
             <div className="text-center">
               <p className="text-[24px] leading-none font-bold tabular-nums">{score}</p>
@@ -87,6 +99,58 @@ export default function RecoveryPage() {
               {readinessSummary(score)}
             </p>
           </div>
+        </Card>
+
+        <Card className="p-5">
+          {states ? (
+            <BodyMap
+              states={states}
+              selected={selected}
+              onSelect={(muscle) => setSelected(muscle === selected ? null : muscle)}
+            />
+          ) : null}
+          <AnimatePresence>
+            {selectedState ? (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
+                className="overflow-hidden"
+              >
+                <div className="mt-4 rounded-2xl bg-surface-sunken p-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[15px] font-semibold">
+                      {MUSCLE_LABELS[selectedState.muscle]}
+                    </p>
+                    <span
+                      className="text-[15px] font-bold tabular-nums"
+                      style={{ color: readinessTierColor(selectedState.readiness) }}
+                    >
+                      {Math.round(selectedState.readiness)}%
+                    </span>
+                  </div>
+                  <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/8">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${Math.round(selectedState.readiness)}%`,
+                        backgroundColor: readinessTierColor(selectedState.readiness),
+                      }}
+                    />
+                  </div>
+                  <div className="mt-2.5 flex justify-between text-[12px] text-content-secondary">
+                    <span>
+                      {selectedState.lastTrainedAt
+                        ? `Last trained ${formatRelativeDay(selectedState.lastTrainedAt).toLowerCase()}`
+                        : 'Not trained yet'}
+                    </span>
+                    <span>{recoveryEta(selectedState)}</span>
+                  </div>
+                </div>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
         </Card>
 
         {REGION_ORDER.map(({ region, label }) => {
