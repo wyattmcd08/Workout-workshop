@@ -14,8 +14,6 @@
     "@heroicons/react": "^2.2.0",
     "@hookform/resolvers": "^5.4.0",
     "@tailwindcss/vite": "^4.3.3",
-    "dexie": "^4.4.4",
-    "dexie-react-hooks": "^4.4.0",
     "framer-motion": "^12.42.2",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",

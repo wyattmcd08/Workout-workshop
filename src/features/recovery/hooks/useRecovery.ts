@@ -1,20 +1,22 @@
-import { useLiveQuery } from 'dexie-react-hooks'
-import { useEffect, useState } from 'react'
-import { getAllRecoveryStates } from '@/services/recovery'
+import { useEffect, useMemo, useState } from 'react'
+import { useDataStore } from '@/store/dataStore'
+import { recoveryStatesFromRecords } from '@/services/recovery'
 import type { MuscleRecoveryState } from '@/types'
 
 /**
- * Live recovery state for every muscle. Reacts to workout completions via
- * Dexie live queries and re-decays fatigue once a minute while mounted.
+ * Live recovery state for every muscle. Reacts to workout completions via the
+ * data store and re-decays fatigue once a minute while mounted.
  */
 export function useRecoveryStates(): MuscleRecoveryState[] | undefined {
-  const [tick, setTick] = useState(0)
+  const records = useDataStore((s) => s.muscleRecovery)
+  const [now, setNow] = useState(() => Date.now())
+
   useEffect(() => {
-    const interval = setInterval(() => setTick((t) => t + 1), 60_000)
+    const interval = setInterval(() => setNow(Date.now()), 60_000)
     return () => clearInterval(interval)
   }, [])
 
-  return useLiveQuery(() => getAllRecoveryStates(), [tick])
+  return useMemo(() => recoveryStatesFromRecords(records, now), [records, now])
 }
 
 /** Overall readiness score: average across all muscles, 0–100. */

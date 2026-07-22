@@ -1,4 +1,4 @@
-import { db } from '@/services/db'
+import { useDataStore } from '@/store/dataStore'
 import type { TemplateExercise, Workout, WorkoutTemplate } from '@/types'
 import { createId } from '@/utils/id'
 
@@ -40,14 +40,14 @@ export async function createTemplateFromWorkout(workout: Workout): Promise<Worko
     createdAt: Date.now(),
     lastUsedAt: null,
   }
-  await db.templates.add(template)
+  useDataStore.getState().addTemplate(template)
   return template
 }
 
 export async function deleteTemplate(templateId: string): Promise<void> {
-  await db.templates.delete(templateId)
+  useDataStore.getState().deleteTemplate(templateId)
 }
 
 export async function touchTemplate(templateId: string): Promise<void> {
-  await db.templates.update(templateId, { lastUsedAt: Date.now() })
+  useDataStore.getState().updateTemplate(templateId, { lastUsedAt: Date.now() })
 }

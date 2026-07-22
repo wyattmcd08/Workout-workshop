@@ -1,5 +1,5 @@
-import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '@/services/db'
+import { useMemo } from 'react'
+import { useDataStore } from '@/store/dataStore'
 import type { Workout } from '@/types'
 import { estimateOneRepMax, exerciseVolumeKg } from '@/utils/calculations'
 import { parseDateKey } from '@/utils/date'
@@ -72,9 +72,7 @@ function sessionFromWorkout(workout: Workout, exerciseId: string): ExerciseSessi
 
 function buildSummaries(workouts: Workout[]): Map<string, ExerciseSummary> {
   const summaries = new Map<string, ExerciseSummary>()
-  const exerciseIds = new Set(
-    workouts.flatMap((w) => w.exercises.map((e) => e.exerciseId)),
-  )
+  const exerciseIds = new Set(workouts.flatMap((w) => w.exercises.map((e) => e.exerciseId)))
 
   for (const exerciseId of exerciseIds) {
     const sessions: ExerciseSession[] = []
@@ -102,19 +100,19 @@ function buildSummaries(workouts: Workout[]): Map<string, ExerciseSummary> {
 
 /** All exercises with logged history, most recently trained first. */
 export function useExerciseSummaries(): ExerciseSummary[] | undefined {
-  return useLiveQuery(async () => {
-    const workouts = await db.workouts.toArray()
-    return [...buildSummaries(workouts).values()].sort(
-      (a, b) => b.lastTrainedAt - a.lastTrainedAt,
-    )
-  }, [])
+  const workouts = useDataStore((s) => s.workouts)
+  return useMemo(
+    () => [...buildSummaries(workouts).values()].sort((a, b) => b.lastTrainedAt - a.lastTrainedAt),
+    [workouts],
+  )
 }
 
 export function useExerciseSummary(exerciseId: string): ExerciseSummary | null | undefined {
-  return useLiveQuery(async () => {
-    const workouts = await db.workouts.toArray()
-    return buildSummaries(workouts).get(exerciseId) ?? null
-  }, [exerciseId])
+  const workouts = useDataStore((s) => s.workouts)
+  return useMemo(
+    () => buildSummaries(workouts).get(exerciseId) ?? null,
+    [workouts, exerciseId],
+  )
 }
 
 /**
@@ -163,8 +161,8 @@ export interface WeeklyVolumePoint {
 
 /** Total completed working volume per week (Monday-anchored, last 8 weeks). */
 export function useWeeklyVolume(): WeeklyVolumePoint[] | undefined {
-  return useLiveQuery(async () => {
-    const workouts = await db.workouts.toArray()
+  const workouts = useDataStore((s) => s.workouts)
+  return useMemo(() => {
     const now = new Date()
     const monday = new Date(now)
     monday.setDate(now.getDate() - ((now.getDay() + 6) % 7))
@@ -186,5 +184,5 @@ export function useWeeklyVolume(): WeeklyVolumePoint[] | undefined {
       })
     }
     return points
-  }, [])
+  }, [workouts])
 }

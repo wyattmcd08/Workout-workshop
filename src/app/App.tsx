@@ -1,7 +1,6 @@
 import { Suspense, lazy, useEffect } from 'react'
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from './AppShell'
-import { syncSeedExercises } from '@/services/db'
 
 const HomePage = lazy(() => import('@/pages/HomePage'))
 const WorkoutPage = lazy(() => import('@/pages/WorkoutPage'))
@@ -21,9 +20,8 @@ function RouteFallback() {
 
 export default function App() {
   useEffect(() => {
-    // Best-effort: seed sync retries on next launch if IndexedDB is flaky,
-    // and persistent storage asks iOS not to evict our data/caches.
-    syncSeedExercises().catch(() => undefined)
+    // Ask iOS to keep our localStorage/caches from being evicted under
+    // storage pressure. Best-effort; ignored where unsupported.
     if (navigator.storage?.persist) {
       navigator.storage.persist().catch(() => undefined)
     }

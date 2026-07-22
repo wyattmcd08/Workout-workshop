@@ -4,6 +4,37 @@ An all-in-one fitness operating system for iPhone, built as an offline-capable P
 Workouts, recovery, nutrition, hydration, and body metrics feed one connected local
 data layer — designed to grow into meal prep, AI coaching, analytics, and more.
 
+## Status — Storage layer rebuilt on localStorage (iOS reliability)
+
+The installed iOS PWA was crashing on launch with `UnknownError: Unable to open
+cursor`. Root cause: **IndexedDB on iOS/WebKit**. When an installed PWA is
+backgrounded or the device is under memory pressure, WebKit drops the
+IndexedDB connection and the next cursor operation throws — a long-standing,
+unfixable WebKit failure mode. Every reactive query in the app opened a cursor,
+so a single dropped connection took down the whole UI.
+
+The fix removes IndexedDB entirely:
+
+- **All data now lives in localStorage** via a single Zustand store
+  (`src/store/dataStore.ts`). localStorage is synchronous and has no
+  connection/cursor lifecycle, so the failure class cannot occur — the bundle
+  contains **zero** cursor operations and no Dexie.
+- **One source of truth, one instance.** The store holds workouts, templates,
+  foods, food/water logs, weigh-ins, custom exercises, and muscle recovery.
+  Seed exercises are re-derived from code (not persisted), keeping the payload
+  small.
+- **No data loss on update.** A one-time, best-effort migration
+  (`src/services/legacyMigration.ts`) imports any pre-existing IndexedDB data
+  using a single `getAll()` read (no cursor), runs after first paint so it can
+  never block or hang startup, and fills only empty collections. Normal app
+  updates only change code — persisted data in localStorage is untouched.
+- **Graceful failure.** localStorage access is wrapped so a private-mode/quota
+  error degrades to in-memory state instead of crashing. A top-level error
+  boundary still offers Reload / Repair with a visible build stamp.
+
+Recovery data volume fits localStorage comfortably (seed data excluded), and
+the storage layer stays reactive, so every screen updates instantly as before.
+
 ## Status — Phase 3: Analytics
 
 Shipped and working end-to-end:

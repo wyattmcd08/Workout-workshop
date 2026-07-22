@@ -1,4 +1,5 @@
 import type {
+  Exercise,
   MuscleGroup,
   MuscleRecoveryRecord,
   MuscleRecoveryState,
@@ -7,15 +8,23 @@ import type {
 import { MUSCLE_GROUPS } from '@/types'
 import { clamp } from '@/utils/format'
 import { hoursBetween } from '@/utils/date'
-import { db } from './db'
+
+/**
+ * Recovery math. Pure functions only — no storage. The data store owns the
+ * persisted records; these helpers derive display state and compute the
+ * fatigue a finished workout adds.
+ */
 
 /** Hours for fatigue to fully drain from 100 → 0. */
-const FULL_RECOVERY_HOURS = 72
+export const FULL_RECOVERY_HOURS = 72
 
 /** Fatigue added per completed working set that hits a muscle directly. */
 const FATIGUE_PER_PRIMARY_SET = 9
 /** Secondary muscles accumulate fatigue at a reduced rate. */
 const FATIGUE_PER_SECONDARY_SET = 3.5
+
+/** Persisted recovery records, keyed by muscle. */
+export type MuscleRecoveryMap = Partial<Record<MuscleGroup, MuscleRecoveryRecord>>
 
 /** Decay stored fatigue linearly based on time elapsed. */
 function decayedFatigue(record: MuscleRecoveryRecord, now: number): number {
@@ -40,62 +49,56 @@ function restedState(muscle: MuscleGroup): MuscleRecoveryState {
   return { muscle, fatigue: 0, readiness: 100, lastTrainedAt: null, hoursToFullRecovery: 0 }
 }
 
-export async function getAllRecoveryStates(now = Date.now()): Promise<MuscleRecoveryState[]> {
-  const records = await db.muscleRecovery.toArray()
-  const byMuscle = new Map(records.map((r) => [r.muscle, r]))
+/** Display-ready recovery state for every muscle, decayed to `now`. */
+export function recoveryStatesFromRecords(
+  records: MuscleRecoveryMap,
+  now = Date.now(),
+): MuscleRecoveryState[] {
   return MUSCLE_GROUPS.map((muscle) => {
-    const record = byMuscle.get(muscle)
+    const record = records[muscle]
     return record ? toRecoveryState(record, now) : restedState(muscle)
   })
 }
 
 /**
- * Applies the fatigue from a completed workout on top of each muscle's
- * current (decayed) fatigue and persists the result.
+ * Returns the new recovery map after applying a completed workout's fatigue
+ * on top of each muscle's current (decayed) fatigue. Pure — the caller
+ * persists the result.
  */
-export async function applyWorkoutFatigue(
-  exercises: WorkoutExercise[],
+export function computeWorkoutFatigue(
+  current: MuscleRecoveryMap,
+  exercisesById: Map<string, Exercise>,
+  performed: WorkoutExercise[],
   completedAt: number,
-): Promise<void> {
-  const addedFatigue = new Map<MuscleGroup, number>()
-  const exerciseIds = [...new Set(exercises.map((e) => e.exerciseId))]
-  const catalog = await db.exercises.bulkGet(exerciseIds)
-  const catalogById = new Map(
-    catalog.flatMap((exercise) => (exercise ? [[exercise.id, exercise] as const] : [])),
-  )
+): MuscleRecoveryMap {
+  const added = new Map<MuscleGroup, number>()
 
-  for (const performed of exercises) {
-    const exercise = catalogById.get(performed.exerciseId)
-    if (!exercise) continue
-    const workingSets = performed.sets.filter((s) => s.completed && s.type !== 'warmup').length
+  for (const exercise of performed) {
+    const catalog = exercisesById.get(exercise.exerciseId)
+    if (!catalog) continue
+    const workingSets = exercise.sets.filter((s) => s.completed && s.type !== 'warmup').length
     if (workingSets === 0) continue
 
-    for (const muscle of exercise.primaryMuscles) {
-      addedFatigue.set(
-        muscle,
-        (addedFatigue.get(muscle) ?? 0) + workingSets * FATIGUE_PER_PRIMARY_SET,
-      )
+    for (const muscle of catalog.primaryMuscles) {
+      added.set(muscle, (added.get(muscle) ?? 0) + workingSets * FATIGUE_PER_PRIMARY_SET)
     }
-    for (const muscle of exercise.secondaryMuscles) {
-      addedFatigue.set(
-        muscle,
-        (addedFatigue.get(muscle) ?? 0) + workingSets * FATIGUE_PER_SECONDARY_SET,
-      )
+    for (const muscle of catalog.secondaryMuscles) {
+      added.set(muscle, (added.get(muscle) ?? 0) + workingSets * FATIGUE_PER_SECONDARY_SET)
     }
   }
 
-  if (addedFatigue.size === 0) return
+  if (added.size === 0) return current
 
-  await db.transaction('rw', db.muscleRecovery, async () => {
-    for (const [muscle, added] of addedFatigue) {
-      const existing = await db.muscleRecovery.get(muscle)
-      const current = existing ? decayedFatigue(existing, completedAt) : 0
-      await db.muscleRecovery.put({
-        muscle,
-        fatigue: clamp(current + added, 0, 100),
-        updatedAt: completedAt,
-        lastTrainedAt: completedAt,
-      })
+  const next: MuscleRecoveryMap = { ...current }
+  for (const [muscle, addedFatigue] of added) {
+    const existing = current[muscle]
+    const base = existing ? decayedFatigue(existing, completedAt) : 0
+    next[muscle] = {
+      muscle,
+      fatigue: clamp(base + addedFatigue, 0, 100),
+      updatedAt: completedAt,
+      lastTrainedAt: completedAt,
     }
-  })
+  }
+  return next
 }

@@ -1,5 +1,5 @@
-import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '@/services/db'
+import { useMemo } from 'react'
+import { useDataStore } from '@/store/dataStore'
 import { estimateOneRepMax } from '@/utils/calculations'
 
 export interface ExercisePR {
@@ -24,10 +24,9 @@ export const FEATURED_LIFTS = [
  * every workout. Reactive — updates the moment a workout is saved.
  */
 export function useExercisePRs(): Map<string, ExercisePR> | undefined {
-  return useLiveQuery(async () => {
-    const workouts = await db.workouts.toArray()
+  const workouts = useDataStore((s) => s.workouts)
+  return useMemo(() => {
     const prs = new Map<string, ExercisePR>()
-
     for (const workout of workouts) {
       for (const exercise of workout.exercises) {
         for (const set of exercise.sets) {
@@ -49,5 +48,5 @@ export function useExercisePRs(): Map<string, ExercisePR> | undefined {
       }
     }
     return prs
-  }, [])
+  }, [workouts])
 }

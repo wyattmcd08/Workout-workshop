@@ -1,42 +1,58 @@
-import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '@/services/db'
+import { useMemo } from 'react'
+import { selectAllExercises, useDataStore } from '@/store/dataStore'
 import type { Exercise, Workout, WorkoutTemplate } from '@/types'
 import { currentStreak } from '@/utils/calculations'
 import { dateKeyDaysAgo, todayKey } from '@/utils/date'
 
 export function useRecentWorkouts(limit = 10): Workout[] | undefined {
-  return useLiveQuery(
-    () => db.workouts.orderBy('startedAt').reverse().limit(limit).toArray(),
-    [limit],
+  const workouts = useDataStore((s) => s.workouts)
+  return useMemo(
+    () => [...workouts].sort((a, b) => b.startedAt - a.startedAt).slice(0, limit),
+    [workouts, limit],
   )
 }
 
 export function useTodaysWorkout(): Workout | null | undefined {
-  return useLiveQuery(async () => {
-    const workout = await db.workouts.where('dateKey').equals(todayKey()).last()
-    return workout ?? null
-  }, [])
+  const workouts = useDataStore((s) => s.workouts)
+  return useMemo(() => {
+    const key = todayKey()
+    const todays = workouts.filter((w) => w.dateKey === key)
+    return todays.length > 0 ? (todays[todays.length - 1] ?? null) : null
+  }, [workouts])
 }
 
 export function useTemplates(): WorkoutTemplate[] | undefined {
-  return useLiveQuery(() => db.templates.orderBy('lastUsedAt').reverse().toArray(), [])
+  const templates = useDataStore((s) => s.templates)
+  return useMemo(
+    () => [...templates].sort((a, b) => (b.lastUsedAt ?? 0) - (a.lastUsedAt ?? 0)),
+    [templates],
+  )
 }
 
 export function useTrainingStreak(): number | undefined {
-  return useLiveQuery(async () => {
-    const dateKeys = (await db.workouts.orderBy('dateKey').uniqueKeys()) as string[]
+  const workouts = useDataStore((s) => s.workouts)
+  return useMemo(() => {
+    const dateKeys = workouts.map((w) => w.dateKey)
     return currentStreak(dateKeys, todayKey(), dateKeyDaysAgo(1))
-  }, [])
+  }, [workouts])
 }
 
 /** Completed workouts in the trailing 7 days, for the weekly goal ring. */
 export function useWorkoutsThisWeek(): number | undefined {
-  return useLiveQuery(async () => {
+  const workouts = useDataStore((s) => s.workouts)
+  return useMemo(() => {
     const since = dateKeyDaysAgo(6)
-    return db.workouts.where('dateKey').aboveOrEqual(since).count()
-  }, [])
+    return workouts.filter((w) => w.dateKey >= since).length
+  }, [workouts])
 }
 
 export function useExercises(): Exercise[] | undefined {
-  return useLiveQuery(() => db.exercises.orderBy('name').toArray(), [])
+  const customExercises = useDataStore((s) => s.customExercises)
+  return useMemo(
+    () =>
+      selectAllExercises({ customExercises })
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [customExercises],
+  )
 }

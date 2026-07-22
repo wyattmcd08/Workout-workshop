@@ -1,5 +1,5 @@
-import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '@/services/db'
+import { useMemo } from 'react'
+import { useDataStore } from '@/store/dataStore'
 import type { Food, FoodLogEntry, MacroBreakdown, MealType } from '@/types'
 import { todayKey } from '@/utils/date'
 
@@ -13,12 +13,14 @@ export interface TodayNutrition {
 const EMPTY_TOTALS: MacroBreakdown = { calories: 0, proteinG: 0, carbsG: 0, fatG: 0, fiberG: 0 }
 
 export function useTodayNutrition(): TodayNutrition | undefined {
-  return useLiveQuery(async () => {
+  const foodLogs = useDataStore((s) => s.foodLogs)
+  const waterLogs = useDataStore((s) => s.waterLogs)
+
+  return useMemo(() => {
     const dateKey = todayKey()
-    const [entries, waterEntries] = await Promise.all([
-      db.foodLogs.where('dateKey').equals(dateKey).sortBy('loggedAt'),
-      db.waterLogs.where('dateKey').equals(dateKey).toArray(),
-    ])
+    const entries = foodLogs
+      .filter((e) => e.dateKey === dateKey)
+      .sort((a, b) => a.loggedAt - b.loggedAt)
 
     const entriesByMeal: Record<MealType, FoodLogEntry[]> = {
       breakfast: [],
@@ -36,19 +38,19 @@ export function useTodayNutrition(): TodayNutrition | undefined {
       totals.fiberG += entry.fiberG
     }
 
-    return {
-      entries,
-      entriesByMeal,
-      totals,
-      waterMl: waterEntries.reduce((sum, w) => sum + w.amountMl, 0),
-    }
-  }, [])
+    const waterMl = waterLogs
+      .filter((w) => w.dateKey === dateKey)
+      .reduce((sum, w) => sum + w.amountMl, 0)
+
+    return { entries, entriesByMeal, totals, waterMl }
+  }, [foodLogs, waterLogs])
 }
 
 /** Most recently logged foods for one-tap re-logging. */
 export function useRecentFoods(limit = 8): Food[] | undefined {
-  return useLiveQuery(
-    () => db.foods.orderBy('lastLoggedAt').reverse().limit(limit).toArray(),
-    [limit],
+  const foods = useDataStore((s) => s.foods)
+  return useMemo(
+    () => [...foods].sort((a, b) => b.lastLoggedAt - a.lastLoggedAt).slice(0, limit),
+    [foods, limit],
   )
 }
