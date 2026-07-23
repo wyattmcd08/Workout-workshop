@@ -1,21 +1,22 @@
 import { useDataStore } from '@/store/dataStore'
-import type { MealType, Recipe, ShoppingItem } from '@/types'
+import type { MealPlanEntry, MealType, Recipe, ShoppingItem } from '@/types'
 import { todayKey } from '@/utils/date'
 import { createId } from '@/utils/id'
 
 /**
- * Logs `servings` of a recipe to today's nutrition. Recipe macros are stored
- * per serving, so this scales them and writes a food-log entry that shows up
- * on the Nutrition page immediately — the meal-prep ↔ nutrition tie-in.
+ * Logs `servings` of a recipe to a specific day's nutrition. Recipe macros
+ * are stored per serving, so this scales them and writes a food-log entry
+ * that shows up on the Nutrition page — the meal-prep ↔ nutrition tie-in.
  */
-export async function logRecipeToToday(
+export async function logRecipeToDay(
   recipe: Recipe,
+  dateKey: string,
   mealType: MealType,
   servings = 1,
 ): Promise<void> {
   useDataStore.getState().addFoodLog({
     id: createId(),
-    dateKey: todayKey(),
+    dateKey,
     mealType,
     foodId: null,
     name: recipe.name,
@@ -27,6 +28,66 @@ export async function logRecipeToToday(
     fiberG: recipe.fiberG * servings,
     loggedAt: Date.now(),
   })
+}
+
+/** Logs a recipe to today's nutrition. */
+export async function logRecipeToToday(
+  recipe: Recipe,
+  mealType: MealType,
+  servings = 1,
+): Promise<void> {
+  await logRecipeToDay(recipe, todayKey(), mealType, servings)
+}
+
+/** Adds a recipe to a day/meal slot in the weekly plan. */
+export async function planRecipe(
+  recipeId: string,
+  dateKey: string,
+  mealType: MealType,
+  servings = 1,
+): Promise<void> {
+  const entry: MealPlanEntry = {
+    id: createId(),
+    dateKey,
+    mealType,
+    recipeId,
+    servings,
+    createdAt: Date.now(),
+  }
+  useDataStore.getState().addMealPlanEntry(entry)
+}
+
+/**
+ * Adds every ingredient used across the given recipes to the shopping list,
+ * de-duplicated by name (case-insensitive) and skipping items already on the
+ * list. Returns how many new items were added.
+ */
+export async function generateShoppingFromRecipes(recipes: Recipe[]): Promise<number> {
+  const store = useDataStore.getState()
+  const existing = new Set(store.shoppingList.map((i) => i.name.trim().toLowerCase()))
+  const seen = new Set<string>()
+  const now = Date.now()
+  const items: ShoppingItem[] = []
+
+  for (const recipe of recipes) {
+    for (const ingredient of recipe.ingredients) {
+      const name = ingredient.name.trim()
+      const key = name.toLowerCase()
+      if (!name || existing.has(key) || seen.has(key)) continue
+      seen.add(key)
+      items.push({
+        id: createId(),
+        name,
+        quantity: ingredient.quantity.trim(),
+        checked: false,
+        source: 'recipe',
+        createdAt: now + items.length,
+      })
+    }
+  }
+
+  if (items.length > 0) store.addShoppingItems(items)
+  return items.length
 }
 
 /** Adds every ingredient of a recipe to the shopping list. */

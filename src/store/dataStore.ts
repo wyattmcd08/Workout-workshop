@@ -4,6 +4,7 @@ import type {
   Exercise,
   Food,
   FoodLogEntry,
+  MealPlanEntry,
   Recipe,
   ShoppingItem,
   WaterLogEntry,
@@ -37,6 +38,7 @@ export interface DataSnapshot {
   customExercises: Exercise[]
   recipes: Recipe[]
   shoppingList: ShoppingItem[]
+  mealPlan: MealPlanEntry[]
 }
 
 /** Shape accepted from a legacy IndexedDB read or an exported bundle. */
@@ -76,6 +78,9 @@ interface DataActions {
   deleteShoppingItem: (id: string) => void
   clearCheckedShopping: () => void
 
+  addMealPlanEntry: (entry: MealPlanEntry) => void
+  deleteMealPlanEntry: (id: string) => void
+
   /** Replace the entire dataset (used by import). */
   replaceAll: (snapshot: Partial<DataSnapshot>) => void
   /** Fill only currently-empty collections from a legacy source (migration). */
@@ -95,6 +100,7 @@ const EMPTY: DataSnapshot = {
   customExercises: [],
   recipes: [],
   shoppingList: [],
+  mealPlan: [],
 }
 
 /** All exercises: static seed plus any user-created ones. */
@@ -199,6 +205,10 @@ export const useDataStore = create<DataState>()(
       clearCheckedShopping: () =>
         set((s) => ({ shoppingList: s.shoppingList.filter((item) => !item.checked) })),
 
+      addMealPlanEntry: (entry) => set((s) => ({ mealPlan: [...s.mealPlan, entry] })),
+      deleteMealPlanEntry: (id) =>
+        set((s) => ({ mealPlan: s.mealPlan.filter((e) => e.id !== id) })),
+
       replaceAll: (snapshot) => set(() => ({ ...EMPTY, ...snapshot })),
 
       mergeLegacy: (legacy) =>
@@ -253,6 +263,7 @@ export const useDataStore = create<DataState>()(
         customExercises: state.customExercises,
         recipes: state.recipes,
         shoppingList: state.shoppingList,
+        mealPlan: state.mealPlan,
       }),
     },
   ),
@@ -272,5 +283,6 @@ export function snapshotData(): DataSnapshot {
     customExercises: s.customExercises,
     recipes: s.recipes,
     shoppingList: s.shoppingList,
+    mealPlan: s.mealPlan,
   }
 }

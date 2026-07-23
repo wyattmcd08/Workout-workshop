@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   BookOpenIcon,
+  CalendarDaysIcon,
   CheckIcon,
   PlusIcon,
   ShoppingCartIcon,
@@ -12,19 +13,30 @@ import { Card } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Screen } from '@/components/ui/Screen'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
+import { PlanMealSheet } from '@/features/mealprep/components/PlanMealSheet'
 import { RecipeDetailSheet } from '@/features/mealprep/components/RecipeDetailSheet'
 import { RecipeEditorSheet } from '@/features/mealprep/components/RecipeEditorSheet'
-import { useRecipes, useShoppingList } from '@/features/mealprep/hooks/useMealPrep'
-import { addManualShoppingItem } from '@/features/mealprep/services/mealPrepActions'
+import {
+  useRecipes,
+  useShoppingList,
+  usePlannedWeek,
+  type PlannedDay,
+} from '@/features/mealprep/hooks/useMealPrep'
+import {
+  addManualShoppingItem,
+  generateShoppingFromRecipes,
+  logRecipeToDay,
+} from '@/features/mealprep/services/mealPrepActions'
 import { useDataStore } from '@/store/dataStore'
-import type { Recipe } from '@/types'
+import { MEAL_LABELS, type Recipe } from '@/types'
 import { cn } from '@/utils/cn'
 
-type Tab = 'recipes' | 'shopping'
+type Tab = 'recipes' | 'plan' | 'shopping'
 
 const TABS = [
   { value: 'recipes', label: 'Recipes' },
-  { value: 'shopping', label: 'Shopping List' },
+  { value: 'plan', label: 'Plan' },
+  { value: 'shopping', label: 'Shopping' },
 ] as const
 
 function RecipesTab() {
@@ -236,6 +248,168 @@ function ShoppingTab() {
   )
 }
 
+function PlanDayCard({
+  day,
+  onAddMeal,
+  loggedIds,
+  onLog,
+}: {
+  day: PlannedDay
+  onAddMeal: (day: PlannedDay) => void
+  loggedIds: Set<string>
+  onLog: (day: PlannedDay, meal: PlannedDay['meals'][number]) => void
+}) {
+  const deleteMealPlanEntry = useDataStore((s) => s.deleteMealPlanEntry)
+
+  return (
+    <Card>
+      <div className="mb-2 flex items-baseline justify-between">
+        <div className="flex items-baseline gap-2">
+          <p className={cn('text-[15px] font-semibold', day.isToday && 'text-accent')}>
+            {day.weekdayLabel}
+          </p>
+          <p className="text-[12px] text-content-tertiary">{day.dateLabel}</p>
+        </div>
+        {day.totalCalories > 0 ? (
+          <p className="text-[12px] font-semibold text-content-secondary tabular-nums">
+            {Math.round(day.totalCalories)} cal
+          </p>
+        ) : null}
+      </div>
+
+      {day.meals.length > 0 ? (
+        <ul className="mb-2 flex flex-col gap-1.5">
+          {day.meals.map((meal) => {
+            const logged = loggedIds.has(meal.entry.id)
+            return (
+              <li
+                key={meal.entry.id}
+                className="flex items-center gap-2 rounded-xl bg-surface-sunken px-3 py-2"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[14px] font-medium">
+                    {meal.recipe?.name ?? 'Removed recipe'}
+                  </p>
+                  <p className="text-[11px] text-content-tertiary">
+                    {MEAL_LABELS[meal.entry.mealType]}
+                    {meal.entry.servings !== 1 ? ` · ${meal.entry.servings}×` : ''}
+                    {meal.recipe
+                      ? ` · ${Math.round(meal.recipe.calories * meal.entry.servings)} cal`
+                      : ''}
+                  </p>
+                </div>
+                {meal.recipe ? (
+                  <button
+                    type="button"
+                    onClick={() => onLog(day, meal)}
+                    disabled={logged}
+                    className={cn(
+                      'shrink-0 rounded-lg px-2.5 py-1 text-[12px] font-semibold',
+                      logged ? 'text-content-tertiary' : 'bg-accent-muted text-accent',
+                    )}
+                  >
+                    {logged ? 'Logged' : 'Log'}
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  aria-label={`Remove ${meal.recipe?.name ?? 'meal'} from ${day.weekdayLabel}`}
+                  onClick={() => deleteMealPlanEntry(meal.entry.id)}
+                  className="shrink-0 text-content-tertiary"
+                >
+                  <TrashIcon className="size-4" />
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      ) : (
+        <p className="mb-2 text-[13px] text-content-tertiary">No meals planned</p>
+      )}
+
+      <button
+        type="button"
+        onClick={() => onAddMeal(day)}
+        className="flex h-9 w-full items-center justify-center gap-1.5 rounded-xl bg-surface-sunken text-[13px] font-semibold text-accent"
+      >
+        <PlusIcon className="size-4" />
+        Add meal
+      </button>
+    </Card>
+  )
+}
+
+function PlanTab() {
+  const week = usePlannedWeek()
+  const recipes = useRecipes()
+  const [planningDay, setPlanningDay] = useState<PlannedDay | null>(null)
+  const [loggedIds, setLoggedIds] = useState<Set<string>>(new Set())
+  const [generatedCount, setGeneratedCount] = useState<number | null>(null)
+
+  const plannedRecipeIds = new Set(week.flatMap((d) => d.meals.map((m) => m.entry.recipeId)))
+  const hasPlan = plannedRecipeIds.size > 0
+
+  const logMeal = (day: PlannedDay, meal: PlannedDay['meals'][number]) => {
+    if (!meal.recipe) return
+    void logRecipeToDay(meal.recipe, day.dateKey, meal.entry.mealType, meal.entry.servings)
+    setLoggedIds((prev) => new Set(prev).add(meal.entry.id))
+  }
+
+  const generate = async () => {
+    const planned = recipes.filter((r) => plannedRecipeIds.has(r.id))
+    const added = await generateShoppingFromRecipes(planned)
+    setGeneratedCount(added)
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      {recipes.length === 0 ? (
+        <Card>
+          <EmptyState
+            icon={CalendarDaysIcon}
+            title="Plan your week"
+            message="Create a few recipes first, then assign them to days to build your meal plan and a shopping list."
+          />
+        </Card>
+      ) : (
+        <>
+          {week.map((day) => (
+            <PlanDayCard
+              key={day.dateKey}
+              day={day}
+              onAddMeal={setPlanningDay}
+              loggedIds={loggedIds}
+              onLog={logMeal}
+            />
+          ))}
+
+          {hasPlan ? (
+            <div className="flex flex-col gap-2">
+              <Button variant="secondary" fullWidth onClick={() => void generate()}>
+                <ShoppingCartIcon className="size-5" />
+                Generate shopping list from plan
+              </Button>
+              {generatedCount !== null ? (
+                <p className="text-center text-[12px] text-content-secondary">
+                  {generatedCount > 0
+                    ? `Added ${generatedCount} new ${generatedCount === 1 ? 'item' : 'items'} to your shopping list.`
+                    : 'Everything from your plan is already on the list.'}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+        </>
+      )}
+
+      <PlanMealSheet
+        dateKey={planningDay?.dateKey ?? null}
+        dayLabel={planningDay ? `${planningDay.weekdayLabel} ${planningDay.dateLabel}` : ''}
+        onClose={() => setPlanningDay(null)}
+      />
+    </div>
+  )
+}
+
 export default function MealPrepPage() {
   const [tab, setTab] = useState<Tab>('recipes')
 
@@ -244,7 +418,7 @@ export default function MealPrepPage() {
       <div className="mb-5">
         <SegmentedControl options={TABS} value={tab} onChange={setTab} layoutId="mealprep-tab" />
       </div>
-      {tab === 'recipes' ? <RecipesTab /> : <ShoppingTab />}
+      {tab === 'recipes' ? <RecipesTab /> : tab === 'plan' ? <PlanTab /> : <ShoppingTab />}
     </Screen>
   )
 }

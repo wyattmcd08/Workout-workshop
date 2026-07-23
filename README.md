@@ -6,24 +6,28 @@ data layer — designed to grow into meal prep, AI coaching, analytics, and more
 
 ## Status — Phase 4: Meal Prep
 
-Shipped and working end-to-end (More → Meal Prep):
+Shipped and working end-to-end (More → Meal Prep), across three tabs —
+Recipes, Plan, Shopping:
 
 - **Recipe builder + library** — create recipes with a dynamic ingredient
   list, per-serving macros (calories/protein/carbs/fat/fiber), servings, and
   instructions. Edit and delete from a detail sheet.
-- **Recipe → Nutrition integration** — one tap logs a serving of a recipe to
-  any meal on today's Nutrition page (macros scale by servings), tying the
-  ecosystem together.
-- **Shopping list** — push a recipe's ingredients to the list in one tap, add
-  manual items inline, check items off, and clear completed items.
-- New reusable `SegmentedControl` (iOS-style, spring thumb) drives the
-  Recipes / Shopping List tabs.
+- **Weekly meal plan** — a rolling 7-day planner (Today highlighted). Assign
+  any recipe to a day and meal slot with a servings stepper; each day shows
+  its meals and a calorie total. Log a planned meal straight to that day's
+  nutrition, and **generate a shopping list from the whole plan** (ingredients
+  de-duplicated by name, idempotent on repeat).
+- **Recipe → Nutrition integration** — one tap logs a serving of a recipe (or
+  a planned meal) to nutrition; macros scale by servings and appear instantly.
+- **Shopping list** — push a recipe's ingredients or the whole plan to the
+  list, add manual items inline, check items off, and clear completed items.
+- New reusable `SegmentedControl` (iOS-style, spring thumb) drives the tabs.
 
-All Meal Prep data persists through the localStorage store, exports/imports
-with the rest of the app, and was verified end-to-end (14 checks incl. the
-nutrition tie-in and reload persistence) plus a clean multi-viewport pass.
-
-A weekly meal-plan calendar is the next Meal Prep increment.
+All Meal Prep data (recipes, plan, shopping list) persists through the
+localStorage store, exports/imports with the rest of the app, and was verified
+end-to-end (26 checks across the module incl. the nutrition tie-in, plan
+logging, shopping generation, and reload persistence) plus clean
+multi-viewport passes. Meal Prep is now feature-complete for v1.
 
 ## Storage layer rebuilt on localStorage (iOS reliability)
 

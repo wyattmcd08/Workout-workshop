@@ -35,6 +35,7 @@ const ARRAY_KEYS = [
   'customExercises',
   'recipes',
   'shoppingList',
+  'mealPlan',
 ] as const
 
 /** Restores a previously exported bundle, replacing current data. */

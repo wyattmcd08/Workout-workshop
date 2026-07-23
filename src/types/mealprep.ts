@@ -1,4 +1,4 @@
-import type { MacroBreakdown } from './nutrition'
+import type { MacroBreakdown, MealType } from './nutrition'
 
 export interface RecipeIngredient {
   id: string
@@ -17,6 +17,16 @@ export interface Recipe extends MacroBreakdown {
   servings: number
   ingredients: RecipeIngredient[]
   instructions: string
+  createdAt: number
+}
+
+/** A recipe assigned to a specific day and meal slot in the weekly plan. */
+export interface MealPlanEntry {
+  id: string
+  dateKey: string
+  mealType: MealType
+  recipeId: string
+  servings: number
   createdAt: number
 }
 
