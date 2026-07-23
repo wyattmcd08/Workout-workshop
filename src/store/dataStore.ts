@@ -4,6 +4,8 @@ import type {
   Exercise,
   Food,
   FoodLogEntry,
+  Recipe,
+  ShoppingItem,
   WaterLogEntry,
   WeightEntry,
   Workout,
@@ -33,6 +35,8 @@ export interface DataSnapshot {
   weightEntries: WeightEntry[]
   muscleRecovery: MuscleRecoveryMap
   customExercises: Exercise[]
+  recipes: Recipe[]
+  shoppingList: ShoppingItem[]
 }
 
 /** Shape accepted from a legacy IndexedDB read or an exported bundle. */
@@ -63,6 +67,15 @@ interface DataActions {
   addWaterLog: (entry: WaterLogEntry) => void
   upsertWeightForDay: (dateKey: string, weightKg: number) => void
 
+  addRecipe: (recipe: Recipe) => void
+  updateRecipe: (id: string, patch: Partial<Recipe>) => void
+  deleteRecipe: (id: string) => void
+
+  addShoppingItems: (items: ShoppingItem[]) => void
+  toggleShoppingItem: (id: string) => void
+  deleteShoppingItem: (id: string) => void
+  clearCheckedShopping: () => void
+
   /** Replace the entire dataset (used by import). */
   replaceAll: (snapshot: Partial<DataSnapshot>) => void
   /** Fill only currently-empty collections from a legacy source (migration). */
@@ -80,6 +93,8 @@ const EMPTY: DataSnapshot = {
   weightEntries: [],
   muscleRecovery: {},
   customExercises: [],
+  recipes: [],
+  shoppingList: [],
 }
 
 /** All exercises: static seed plus any user-created ones. */
@@ -166,6 +181,24 @@ export const useDataStore = create<DataState>()(
           }
         }),
 
+      addRecipe: (recipe) => set((s) => ({ recipes: [...s.recipes, recipe] })),
+      updateRecipe: (id, patch) =>
+        set((s) => ({ recipes: s.recipes.map((r) => (r.id === id ? { ...r, ...patch } : r)) })),
+      deleteRecipe: (id) => set((s) => ({ recipes: s.recipes.filter((r) => r.id !== id) })),
+
+      addShoppingItems: (items) =>
+        set((s) => ({ shoppingList: [...s.shoppingList, ...items] })),
+      toggleShoppingItem: (id) =>
+        set((s) => ({
+          shoppingList: s.shoppingList.map((item) =>
+            item.id === id ? { ...item, checked: !item.checked } : item,
+          ),
+        })),
+      deleteShoppingItem: (id) =>
+        set((s) => ({ shoppingList: s.shoppingList.filter((item) => item.id !== id) })),
+      clearCheckedShopping: () =>
+        set((s) => ({ shoppingList: s.shoppingList.filter((item) => !item.checked) })),
+
       replaceAll: (snapshot) => set(() => ({ ...EMPTY, ...snapshot })),
 
       mergeLegacy: (legacy) =>
@@ -218,6 +251,8 @@ export const useDataStore = create<DataState>()(
         weightEntries: state.weightEntries,
         muscleRecovery: state.muscleRecovery,
         customExercises: state.customExercises,
+        recipes: state.recipes,
+        shoppingList: state.shoppingList,
       }),
     },
   ),
@@ -235,5 +270,7 @@ export function snapshotData(): DataSnapshot {
     weightEntries: s.weightEntries,
     muscleRecovery: s.muscleRecovery,
     customExercises: s.customExercises,
+    recipes: s.recipes,
+    shoppingList: s.shoppingList,
   }
 }

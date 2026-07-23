@@ -27,7 +27,12 @@ const MODULES: ModuleRow[] = [
     icon: Cog6ToothIcon,
     to: '/more/settings',
   },
-  { label: 'Meal Prep', description: 'Recipes, planning, shopping lists', icon: ShoppingBagIcon },
+  {
+    label: 'Meal Prep',
+    description: 'Recipes, macros, shopping list',
+    icon: ShoppingBagIcon,
+    to: '/more/meal-prep',
+  },
   { label: 'AI Coach', description: 'Personalized guidance across your data', icon: SparklesIcon },
   { label: 'Peptides', description: 'Dosing, schedules, inventory', icon: BeakerIcon },
   {

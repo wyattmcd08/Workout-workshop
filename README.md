@@ -4,7 +4,28 @@ An all-in-one fitness operating system for iPhone, built as an offline-capable P
 Workouts, recovery, nutrition, hydration, and body metrics feed one connected local
 data layer — designed to grow into meal prep, AI coaching, analytics, and more.
 
-## Status — Storage layer rebuilt on localStorage (iOS reliability)
+## Status — Phase 4: Meal Prep
+
+Shipped and working end-to-end (More → Meal Prep):
+
+- **Recipe builder + library** — create recipes with a dynamic ingredient
+  list, per-serving macros (calories/protein/carbs/fat/fiber), servings, and
+  instructions. Edit and delete from a detail sheet.
+- **Recipe → Nutrition integration** — one tap logs a serving of a recipe to
+  any meal on today's Nutrition page (macros scale by servings), tying the
+  ecosystem together.
+- **Shopping list** — push a recipe's ingredients to the list in one tap, add
+  manual items inline, check items off, and clear completed items.
+- New reusable `SegmentedControl` (iOS-style, spring thumb) drives the
+  Recipes / Shopping List tabs.
+
+All Meal Prep data persists through the localStorage store, exports/imports
+with the rest of the app, and was verified end-to-end (14 checks incl. the
+nutrition tie-in and reload persistence) plus a clean multi-viewport pass.
+
+A weekly meal-plan calendar is the next Meal Prep increment.
+
+## Storage layer rebuilt on localStorage (iOS reliability)
 
 The installed iOS PWA was crashing on launch with `UnknownError: Unable to open
 cursor`. Root cause: **IndexedDB on iOS/WebKit**. When an installed PWA is
