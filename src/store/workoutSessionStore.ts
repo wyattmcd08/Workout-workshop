@@ -26,6 +26,13 @@ interface WorkoutSessionState {
   startFromTemplate: (template: WorkoutTemplate) => void
   addExercise: (exercise: Exercise) => void
   removeExercise: (workoutExerciseId: string) => void
+  /** Swap the movement while keeping the logged sets, notes, and grouping. */
+  replaceExercise: (workoutExerciseId: string, exercise: Exercise) => void
+  moveExercise: (workoutExerciseId: string, direction: 'up' | 'down') => void
+  /** Link an exercise into a superset with the one directly below it. */
+  linkSupersetWithNext: (workoutExerciseId: string) => void
+  /** Remove an exercise from its superset. */
+  unlinkSuperset: (workoutExerciseId: string) => void
   addSet: (workoutExerciseId: string) => void
   removeSet: (workoutExerciseId: string, setId: string) => void
   updateSet: (
@@ -57,6 +64,7 @@ function sessionExercise(exerciseId: string, exerciseName: string, setCount = 3)
     exerciseName,
     sets: Array.from({ length: setCount }, () => emptySet()),
     notes: '',
+    supersetId: null,
   }
 }
 
@@ -124,6 +132,72 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>()(
             session: {
               ...state.session,
               exercises: state.session.exercises.filter((e) => e.id !== workoutExerciseId),
+            },
+          }
+        }),
+
+      replaceExercise: (workoutExerciseId, exercise) =>
+        set((state) => {
+          if (!state.session) return state
+          return {
+            session: {
+              ...state.session,
+              exercises: updateExercise(state.session.exercises, workoutExerciseId, (current) => ({
+                ...current,
+                exerciseId: exercise.id,
+                exerciseName: exercise.name,
+              })),
+            },
+          }
+        }),
+
+      moveExercise: (workoutExerciseId, direction) =>
+        set((state) => {
+          if (!state.session) return state
+          const list = state.session.exercises
+          const index = list.findIndex((e) => e.id === workoutExerciseId)
+          if (index < 0) return state
+          const target = direction === 'up' ? index - 1 : index + 1
+          if (target < 0 || target >= list.length) return state
+          const next = list.slice()
+          const [moved] = next.splice(index, 1)
+          next.splice(target, 0, moved!)
+          return { session: { ...state.session, exercises: next } }
+        }),
+
+      linkSupersetWithNext: (workoutExerciseId) =>
+        set((state) => {
+          if (!state.session) return state
+          const list = state.session.exercises
+          const index = list.findIndex((e) => e.id === workoutExerciseId)
+          if (index < 0 || index >= list.length - 1) return state
+          const current = list[index]!
+          const next = list[index + 1]!
+          // Extend an existing group downward, or start a fresh one.
+          const groupId = current.supersetId ?? createId()
+          const exercises = list.map((exercise) => {
+            if (exercise.id === current.id || exercise.id === next.id) {
+              return { ...exercise, supersetId: groupId }
+            }
+            return exercise
+          })
+          return { session: { ...state.session, exercises } }
+        }),
+
+      unlinkSuperset: (workoutExerciseId) =>
+        set((state) => {
+          if (!state.session) return state
+          const target = state.session.exercises.find((e) => e.id === workoutExerciseId)
+          const groupId = target?.supersetId
+          if (!groupId) return state
+          // Dissolve the whole group so no orphaned single-member superset
+          // is left behind.
+          return {
+            session: {
+              ...state.session,
+              exercises: state.session.exercises.map((exercise) =>
+                exercise.supersetId === groupId ? { ...exercise, supersetId: null } : exercise,
+              ),
             },
           }
         }),

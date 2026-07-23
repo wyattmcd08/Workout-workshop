@@ -18,6 +18,12 @@ export interface WorkoutExercise {
   exerciseName: string
   sets: WorkoutSet[]
   notes: string
+  /**
+   * Shared id linking consecutive exercises into a superset. Null when the
+   * exercise stands alone. Optional for backward compatibility with records
+   * saved before supersets existed.
+   */
+  supersetId?: string | null
 }
 
 export interface Workout {

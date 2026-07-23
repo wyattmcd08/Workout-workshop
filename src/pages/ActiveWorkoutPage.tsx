@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { CheckIcon, PlusIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/solid'
+import { CheckIcon, EllipsisHorizontalIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/solid'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { ExerciseActionSheet } from '@/features/workout/components/ExerciseActionSheet'
+import { ExerciseNoteSheet } from '@/features/workout/components/ExerciseNoteSheet'
 import { ExercisePickerSheet } from '@/features/workout/components/ExercisePickerSheet'
 import { RestTimerBar } from '@/features/workout/components/RestTimerBar'
 import { saveCompletedWorkout } from '@/features/workout/services/workoutLog'
 import { useSettingsStore, useUnitSystem } from '@/store/settingsStore'
 import { useWorkoutSessionStore } from '@/store/workoutSessionStore'
-import type { SetType, UnitSystem, WorkoutSet } from '@/types'
+import type { SetType, UnitSystem, WorkoutExercise, WorkoutSet } from '@/types'
 import { cn } from '@/utils/cn'
 import { formatDuration } from '@/utils/date'
 import { fromDisplayWeight, toDisplayWeight, weightUnitLabel } from '@/utils/units'
@@ -119,6 +121,11 @@ export default function ActiveWorkoutPage() {
   const session = useWorkoutSessionStore((s) => s.session)
   const addExercise = useWorkoutSessionStore((s) => s.addExercise)
   const removeExercise = useWorkoutSessionStore((s) => s.removeExercise)
+  const replaceExercise = useWorkoutSessionStore((s) => s.replaceExercise)
+  const moveExercise = useWorkoutSessionStore((s) => s.moveExercise)
+  const linkSupersetWithNext = useWorkoutSessionStore((s) => s.linkSupersetWithNext)
+  const unlinkSuperset = useWorkoutSessionStore((s) => s.unlinkSuperset)
+  const setExerciseNotes = useWorkoutSessionStore((s) => s.setExerciseNotes)
   const addSet = useWorkoutSessionStore((s) => s.addSet)
   const removeSet = useWorkoutSessionStore((s) => s.removeSet)
   const updateSet = useWorkoutSessionStore((s) => s.updateSet)
@@ -127,7 +134,12 @@ export default function ActiveWorkoutPage() {
   const startRest = useWorkoutSessionStore((s) => s.startRest)
   const defaultRestSeconds = useSettingsStore((s) => s.profile.defaultRestSeconds)
 
-  const [pickerOpen, setPickerOpen] = useState(false)
+  // Picker is used both to add and to replace; replace carries the target id.
+  const [picker, setPicker] = useState<{ mode: 'add' } | { mode: 'replace'; id: string } | null>(
+    null,
+  )
+  const [menuExercise, setMenuExercise] = useState<WorkoutExercise | null>(null)
+  const [noteExercise, setNoteExercise] = useState<WorkoutExercise | null>(null)
   const [confirmingCancel, setConfirmingCancel] = useState(false)
   const elapsed = useElapsedSeconds(session?.startedAt)
 
@@ -169,60 +181,81 @@ export default function ActiveWorkoutPage() {
 
       <div className="flex flex-col gap-3">
         <AnimatePresence initial={false}>
-          {session.exercises.map((exercise) => (
-            <motion.div
-              key={exercise.id}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.97 }}
-              transition={{ type: 'spring', stiffness: 320, damping: 30 }}
-            >
-              <Card>
-                <div className="mb-3 flex items-center justify-between">
-                  <p className="text-[16px] font-semibold">{exercise.exerciseName}</p>
+          {session.exercises.map((exercise, exerciseIndex) => {
+            const prev = session.exercises[exerciseIndex - 1]
+            const inSuperset = Boolean(exercise.supersetId)
+            const groupedWithPrev = inSuperset && prev?.supersetId === exercise.supersetId
+            const isGroupStart = inSuperset && !groupedWithPrev
+            return (
+              <motion.div
+                key={exercise.id}
+                layout
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.97 }}
+                transition={{ type: 'spring', stiffness: 320, damping: 30 }}
+              >
+                <Card className={cn(inSuperset && 'border-l-[3px] border-l-purple')}>
+                  {isGroupStart ? (
+                    <span className="mb-2 inline-flex rounded-full bg-purple/15 px-2.5 py-0.5 text-[10px] font-bold tracking-wide text-purple uppercase">
+                      Superset
+                    </span>
+                  ) : null}
+                  <div className="mb-3 flex items-center justify-between">
+                    <p className="text-[16px] font-semibold">{exercise.exerciseName}</p>
+                    <button
+                      type="button"
+                      aria-label={`Options for ${exercise.exerciseName}`}
+                      onClick={() => setMenuExercise(exercise)}
+                      className="flex size-8 items-center justify-center rounded-full bg-surface-sunken text-content-secondary"
+                    >
+                      <EllipsisHorizontalIcon className="size-5" />
+                    </button>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {exercise.sets.map((set, index) => {
+                      const workingNumber =
+                        exercise.sets.slice(0, index + 1).filter((s) => s.type !== 'warmup').length
+                      return (
+                        <SetRow
+                          key={set.id}
+                          index={index}
+                          workingNumber={workingNumber}
+                          set={set}
+                          unitSystem={unitSystem}
+                          onUpdate={(patch) => {
+                            updateSet(exercise.id, set.id, patch)
+                            if (patch.completed === true) startRest(defaultRestSeconds)
+                          }}
+                          onRemove={() => removeSet(exercise.id, set.id)}
+                        />
+                      )
+                    })}
+                  </div>
+                  {exercise.notes.trim() ? (
+                    <button
+                      type="button"
+                      onClick={() => setNoteExercise(exercise)}
+                      className="mt-2.5 w-full rounded-xl bg-surface-sunken px-3 py-2 text-left text-[13px] leading-relaxed text-content-secondary"
+                    >
+                      {exercise.notes}
+                    </button>
+                  ) : null}
                   <button
                     type="button"
-                    aria-label={`Remove ${exercise.exerciseName}`}
-                    onClick={() => removeExercise(exercise.id)}
-                    className="flex size-8 items-center justify-center rounded-full text-content-tertiary"
+                    onClick={() => addSet(exercise.id)}
+                    className="mt-3 flex h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-surface-sunken text-[13px] font-semibold text-accent"
                   >
-                    <TrashIcon className="size-4" />
+                    <PlusIcon className="size-4" />
+                    Add Set
                   </button>
-                </div>
-                <div className="flex flex-col gap-2">
-                  {exercise.sets.map((set, index) => {
-                    const workingNumber =
-                      exercise.sets.slice(0, index + 1).filter((s) => s.type !== 'warmup').length
-                    return (
-                      <SetRow
-                        key={set.id}
-                        index={index}
-                        workingNumber={workingNumber}
-                        set={set}
-                        unitSystem={unitSystem}
-                        onUpdate={(patch) => {
-                          updateSet(exercise.id, set.id, patch)
-                          if (patch.completed === true) startRest(defaultRestSeconds)
-                        }}
-                        onRemove={() => removeSet(exercise.id, set.id)}
-                      />
-                    )
-                  })}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => addSet(exercise.id)}
-                  className="mt-3 flex h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-surface-sunken text-[13px] font-semibold text-accent"
-                >
-                  <PlusIcon className="size-4" />
-                  Add Set
-                </button>
-              </Card>
-            </motion.div>
-          ))}
+                </Card>
+              </motion.div>
+            )
+          })}
         </AnimatePresence>
 
-        <Button variant="secondary" size="lg" fullWidth onClick={() => setPickerOpen(true)}>
+        <Button variant="secondary" size="lg" fullWidth onClick={() => setPicker({ mode: 'add' })}>
           <PlusIcon className="size-5" />
           Add Exercise
         </Button>
@@ -231,11 +264,61 @@ export default function ActiveWorkoutPage() {
       <RestTimerBar />
 
       <ExercisePickerSheet
-        open={pickerOpen}
-        onClose={() => setPickerOpen(false)}
+        open={picker !== null}
+        onClose={() => setPicker(null)}
         onSelect={(exercise) => {
-          addExercise(exercise)
-          setPickerOpen(false)
+          if (picker?.mode === 'replace') replaceExercise(picker.id, exercise)
+          else addExercise(exercise)
+          setPicker(null)
+        }}
+      />
+
+      <ExerciseActionSheet
+        exercise={menuExercise}
+        isFirst={
+          !!menuExercise && session.exercises.findIndex((e) => e.id === menuExercise.id) === 0
+        }
+        isLast={
+          !!menuExercise &&
+          session.exercises.findIndex((e) => e.id === menuExercise.id) ===
+            session.exercises.length - 1
+        }
+        inSuperset={Boolean(menuExercise?.supersetId)}
+        onClose={() => setMenuExercise(null)}
+        onAddNote={() => {
+          setNoteExercise(menuExercise)
+          setMenuExercise(null)
+        }}
+        onReplace={() => {
+          if (menuExercise) setPicker({ mode: 'replace', id: menuExercise.id })
+          setMenuExercise(null)
+        }}
+        onMoveUp={() => {
+          if (menuExercise) moveExercise(menuExercise.id, 'up')
+          setMenuExercise(null)
+        }}
+        onMoveDown={() => {
+          if (menuExercise) moveExercise(menuExercise.id, 'down')
+          setMenuExercise(null)
+        }}
+        onToggleSuperset={() => {
+          if (menuExercise) {
+            if (menuExercise.supersetId) unlinkSuperset(menuExercise.id)
+            else linkSupersetWithNext(menuExercise.id)
+          }
+          setMenuExercise(null)
+        }}
+        onRemove={() => {
+          if (menuExercise) removeExercise(menuExercise.id)
+          setMenuExercise(null)
+        }}
+      />
+
+      <ExerciseNoteSheet
+        exercise={noteExercise}
+        onClose={() => setNoteExercise(null)}
+        onSave={(notes) => {
+          if (noteExercise) setExerciseNotes(noteExercise.id, notes)
         }}
       />
 

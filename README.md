@@ -4,6 +4,26 @@ An all-in-one fitness operating system for iPhone, built as an offline-capable P
 Workouts, recovery, nutrition, hydration, and body metrics feed one connected local
 data layer — designed to grow into meal prep, AI coaching, analytics, and more.
 
+## Status — Phase 5: Workout session depth
+
+The active workout logger now has a pro-grade toolkit. Each exercise card has
+an action menu (⋯) with:
+
+- **Replace exercise** — swap the movement (e.g. barbell → dumbbell bench) via
+  the exercise picker while keeping the logged sets, notes, and grouping.
+- **Per-exercise notes** — add a cue/tempo note that shows on the card and
+  persists onto the saved workout.
+- **Reorder** — move an exercise up or down in the session.
+- **Supersets** — link an exercise with the one below it; grouped exercises
+  render with a purple accent bar and a "Superset" badge. Removing from a
+  superset dissolves the whole group so no orphan is left behind.
+
+All of this flows through the persisted session store (survives reload) and
+the saved `Workout` record (`supersetId` is optional/backward-compatible).
+Verified end-to-end (9 checks: reorder, note persistence onto the saved
+workout, substitution keeping sets, superset link/dissolve) plus a clean
+3-viewport pass.
+
 ## Status — Phase 4: Meal Prep
 
 Shipped and working end-to-end (More → Meal Prep), across three tabs —
