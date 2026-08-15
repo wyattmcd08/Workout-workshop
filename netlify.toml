@@ -9,6 +9,12 @@
   # Vite 8 requires Node >= 20.19; pin so local and CI builds match.
   NODE_VERSION = "22"
 
+# AI Coach serverless function. Bundled with esbuild; reads ANTHROPIC_API_KEY
+# from the site's environment variables (set in the Netlify dashboard).
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
 # SPA fallback. Routing is hash-based so every page URL is "/", but this
 # guarantees a deep link or stray path never surfaces a Netlify 404.
 [[redirects]]

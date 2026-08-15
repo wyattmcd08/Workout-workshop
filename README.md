@@ -4,6 +4,31 @@ An all-in-one fitness operating system for iPhone, built as an offline-capable P
 Workouts, recovery, nutrition, hydration, and body metrics feed one connected local
 data layer — designed to grow into meal prep, AI coaching, analytics, and more.
 
+## Status — Phase 7: AI Coach (Claude Sonnet)
+
+**More → AI Coach** — a real LLM coach powered by **Claude Sonnet**, not a
+canned chatbot. A chat UI sends your recent turns plus a compact summary of
+your own data (targets, today's nutrition, recovery readiness, recent
+workouts, estimated 1RMs, weight trend) to the model, so answers are grounded
+in your actual training.
+
+Architecture keeps the API key off devices: the browser calls a **Netlify
+serverless function** (`netlify/functions/coach.mts`), which holds
+`ANTHROPIC_API_KEY` and calls Claude Sonnet server-side. The client never sees
+the key. This is also the future home for accounts, sync, and coach memory.
+
+### One-time setup (required for the coach to work)
+
+1. In Netlify: **Site configuration → Environment variables** → add
+   `ANTHROPIC_API_KEY` with your Anthropic API key.
+2. Redeploy. Until the key is set, the coach shows a friendly "not connected
+   yet" message instead of erroring.
+
+Verified end-to-end (11 checks) with the endpoint mocked: chat send/receive,
+the data-context payload, persistence across reload, new-chat reset, and the
+not-configured/setup states; plus a clean multi-viewport pass. (The live
+model call itself requires the deployed function + key.)
+
 ## Status — Phase 6: Calendar
 
 **More → Calendar** — everything on one timeline. A month grid with prev/next

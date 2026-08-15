@@ -33,7 +33,12 @@ const MODULES: ModuleRow[] = [
     icon: ShoppingBagIcon,
     to: '/more/meal-prep',
   },
-  { label: 'AI Coach', description: 'Personalized guidance across your data', icon: SparklesIcon },
+  {
+    label: 'AI Coach',
+    description: 'Personalized guidance across your data',
+    icon: SparklesIcon,
+    to: '/more/coach',
+  },
   { label: 'Peptides', description: 'Dosing, schedules, inventory', icon: BeakerIcon },
   {
     label: 'Analytics',
