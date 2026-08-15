@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { CheckIcon } from '@heroicons/react/24/solid'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Field } from '@/components/ui/Field'
@@ -7,8 +8,15 @@ import { SectionHeader } from '@/components/ui/SectionHeader'
 import { exportAllData, importAllData } from '@/services/dataTransfer'
 import { useSettingsStore } from '@/store/settingsStore'
 import { repairAndReload } from '@/utils/repair'
-import type { UnitSystem } from '@/types'
+import { ACCENT_COLORS, ACCENT_OPTIONS } from '@/utils/accent'
+import type { HomeWidgets, UnitSystem } from '@/types'
 import { cn } from '@/utils/cn'
+
+const HOME_WIDGET_OPTIONS: Array<{ key: keyof HomeWidgets; label: string; description: string }> = [
+  { key: 'stats', label: 'Stat row', description: 'Streak, readiness, weekly workouts' },
+  { key: 'hydration', label: 'Hydration', description: 'Water tracker with quick-add' },
+  { key: 'weightTrend', label: 'Weight trend', description: '30-day weight chart' },
+]
 
 const UNIT_OPTIONS: Array<{ value: UnitSystem; label: string }> = [
   { value: 'imperial', label: 'Pounds (lb)' },
@@ -22,6 +30,8 @@ export default function SettingsPage() {
   const setTargets = useSettingsStore((s) => s.setTargets)
   const setWeeklyWorkoutGoal = useSettingsStore((s) => s.setWeeklyWorkoutGoal)
   const setDefaultRestSeconds = useSettingsStore((s) => s.setDefaultRestSeconds)
+  const setAccentColor = useSettingsStore((s) => s.setAccentColor)
+  const setHomeWidget = useSettingsStore((s) => s.setHomeWidget)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [transferMessage, setTransferMessage] = useState<string | null>(null)
@@ -71,6 +81,78 @@ export default function SettingsPage() {
                     {option.label}
                   </button>
                 ))}
+              </div>
+            </div>
+          </Card>
+        </section>
+
+        <section>
+          <SectionHeader title="Customization" />
+          <Card className="flex flex-col gap-5">
+            <div>
+              <p className="mb-2.5 text-[13px] font-medium text-content-secondary">Accent color</p>
+              <div className="flex flex-wrap gap-3">
+                {ACCENT_OPTIONS.map((option) => {
+                  const selected = profile.accentColor === option
+                  return (
+                    <button
+                      key={option}
+                      type="button"
+                      aria-label={ACCENT_COLORS[option].label}
+                      aria-pressed={selected}
+                      onClick={() => setAccentColor(option)}
+                      className={cn(
+                        'flex size-10 items-center justify-center rounded-full transition-transform active:scale-90',
+                        selected && 'ring-2 ring-content ring-offset-2 ring-offset-surface',
+                      )}
+                      style={{ backgroundColor: ACCENT_COLORS[option].solid }}
+                    >
+                      {selected ? <CheckIcon className="size-5 text-black" /> : null}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-2.5 text-[13px] font-medium text-content-secondary">
+                Home screen widgets
+              </p>
+              <div className="flex flex-col gap-2.5">
+                {HOME_WIDGET_OPTIONS.map((widget) => {
+                  const on = profile.homeWidgets[widget.key]
+                  return (
+                    <button
+                      key={widget.key}
+                      type="button"
+                      role="switch"
+                      aria-checked={on}
+                      aria-label={widget.label}
+                      onClick={() => setHomeWidget(widget.key, !on)}
+                      className="flex items-center justify-between gap-3 rounded-control bg-surface-sunken px-4 py-3 text-left"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-[15px] font-medium">{widget.label}</p>
+                        <p className="truncate text-[12px] text-content-secondary">
+                          {widget.description}
+                        </p>
+                      </div>
+                      <span
+                        className={cn(
+                          'relative h-7 w-12 shrink-0 rounded-full transition-colors',
+                          on ? 'bg-accent' : 'bg-white/15',
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            'absolute top-0.5 size-6 rounded-full bg-white transition-all',
+                            on ? 'left-[1.375rem]' : 'left-0.5',
+                          )}
+                        />
+                      </span>
+                    </button>
+                  )
+                })}
               </div>
             </div>
           </Card>

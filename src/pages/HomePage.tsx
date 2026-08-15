@@ -135,6 +135,7 @@ export default function HomePage() {
         </Card>
 
         {/* Streak / recovery / weekly goal */}
+        {profile.homeWidgets.stats ? (
         <div className="grid grid-cols-3 gap-3">
           <Card className="flex flex-col items-center gap-1 py-4" onPress={() => navigate('/workout')}>
             <FireIcon className="size-5 text-orange" />
@@ -166,8 +167,10 @@ export default function HomePage() {
             </p>
           </Card>
         </div>
+        ) : null}
 
         {/* Hydration */}
+        {profile.homeWidgets.hydration ? (
         <Card>
           <div className="mb-3 flex items-center justify-between">
             <div>
@@ -197,9 +200,13 @@ export default function HomePage() {
             />
           </div>
         </Card>
+        ) : null}
 
         {/* Weight trend */}
-        {weightEntries && weightEntries.length >= 2 && latestWeight ? (
+        {profile.homeWidgets.weightTrend &&
+        weightEntries &&
+        weightEntries.length >= 2 &&
+        latestWeight ? (
           <Card onPress={() => navigate('/progress')}>
             <div className="mb-1 flex items-baseline justify-between">
               <p className="text-[15px] font-semibold">Weight Trend</p>

@@ -5,6 +5,8 @@ import type {
   Food,
   FoodLogEntry,
   MealPlanEntry,
+  Peptide,
+  PeptideDoseLog,
   Recipe,
   ShoppingItem,
   WaterLogEntry,
@@ -39,6 +41,8 @@ export interface DataSnapshot {
   recipes: Recipe[]
   shoppingList: ShoppingItem[]
   mealPlan: MealPlanEntry[]
+  peptides: Peptide[]
+  peptideLogs: PeptideDoseLog[]
 }
 
 /** Shape accepted from a legacy IndexedDB read or an exported bundle. */
@@ -84,6 +88,13 @@ interface DataActions {
   addMealPlanEntry: (entry: MealPlanEntry) => void
   deleteMealPlanEntry: (id: string) => void
 
+  addPeptide: (peptide: Peptide) => void
+  updatePeptide: (id: string, patch: Partial<Peptide>) => void
+  deletePeptide: (id: string) => void
+  /** Log a dose for today and decrement the peptide's inventory. */
+  logPeptideDose: (id: string, dateKey: string) => void
+  deletePeptideLog: (id: string) => void
+
   /** Replace the entire dataset (used by import). */
   replaceAll: (snapshot: Partial<DataSnapshot>) => void
   /** Fill only currently-empty collections from a legacy source (migration). */
@@ -104,6 +115,8 @@ const EMPTY: DataSnapshot = {
   recipes: [],
   shoppingList: [],
   mealPlan: [],
+  peptides: [],
+  peptideLogs: [],
 }
 
 /** All exercises: static seed plus any user-created ones. */
@@ -217,6 +230,47 @@ export const useDataStore = create<DataState>()(
       deleteMealPlanEntry: (id) =>
         set((s) => ({ mealPlan: s.mealPlan.filter((e) => e.id !== id) })),
 
+      addPeptide: (peptide) => set((s) => ({ peptides: [...s.peptides, peptide] })),
+      updatePeptide: (id, patch) =>
+        set((s) => ({ peptides: s.peptides.map((p) => (p.id === id ? { ...p, ...patch } : p)) })),
+      deletePeptide: (id) =>
+        set((s) => ({
+          peptides: s.peptides.filter((p) => p.id !== id),
+          peptideLogs: s.peptideLogs.filter((l) => l.peptideId !== id),
+        })),
+      logPeptideDose: (id, dateKey) =>
+        set((s) => {
+          const peptide = s.peptides.find((p) => p.id === id)
+          if (!peptide) return s
+          return {
+            peptideLogs: [
+              ...s.peptideLogs,
+              {
+                id: createId(),
+                peptideId: id,
+                dateKey,
+                doseMcg: peptide.doseMcg,
+                loggedAt: Date.now(),
+              },
+            ],
+            peptides: s.peptides.map((p) =>
+              p.id === id ? { ...p, inventoryMcg: Math.max(0, p.inventoryMcg - p.doseMcg) } : p,
+            ),
+          }
+        }),
+      deletePeptideLog: (id) =>
+        set((s) => {
+          const log = s.peptideLogs.find((l) => l.id === id)
+          if (!log) return s
+          // Return the dose to inventory so deleting a mistaken log is lossless.
+          return {
+            peptideLogs: s.peptideLogs.filter((l) => l.id !== id),
+            peptides: s.peptides.map((p) =>
+              p.id === log.peptideId ? { ...p, inventoryMcg: p.inventoryMcg + log.doseMcg } : p,
+            ),
+          }
+        }),
+
       replaceAll: (snapshot) => set(() => ({ ...EMPTY, ...snapshot })),
 
       mergeLegacy: (legacy) =>
@@ -272,6 +326,8 @@ export const useDataStore = create<DataState>()(
         recipes: state.recipes,
         shoppingList: state.shoppingList,
         mealPlan: state.mealPlan,
+        peptides: state.peptides,
+        peptideLogs: state.peptideLogs,
       }),
     },
   ),
@@ -292,5 +348,7 @@ export function snapshotData(): DataSnapshot {
     recipes: s.recipes,
     shoppingList: s.shoppingList,
     mealPlan: s.mealPlan,
+    peptides: s.peptides,
+    peptideLogs: s.peptideLogs,
   }
 }

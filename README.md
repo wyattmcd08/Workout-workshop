@@ -4,6 +4,36 @@ An all-in-one fitness operating system for iPhone, built as an offline-capable P
 Workouts, recovery, nutrition, hydration, and body metrics feed one connected local
 data layer — designed to grow into meal prep, AI coaching, analytics, and more.
 
+## Status — Phase 8: Peptides & Customization
+
+**More → Peptides** — the last spec module: dosing, schedules, and inventory
+across three tabs.
+
+- **Today** — the day's due doses with a completion ring; check one off to log
+  it (and undo if you tapped by mistake). Peptides not scheduled today are
+  listed separately so the plan is unambiguous.
+- **Peptides** — add/edit/delete peptides with a dose (mcg), a schedule
+  (every day, or specific weekdays), a time-of-day, notes, and an active
+  toggle. Each card shows **doses remaining** derived from on-hand inventory,
+  with running-low and out-of-stock warnings.
+- **History** — every logged dose grouped by day, deletable (which returns the
+  dose to inventory, so it's lossless).
+
+Logging a dose draws down inventory; deleting a log restores it. All peptide
+data persists to the localStorage store and is included in export/import.
+
+**Settings → Customization** — a new customization menu:
+
+- **Accent color** — six iOS system colors; the whole app re-themes instantly
+  by overriding the `--color-accent` design tokens at runtime, and the choice
+  is applied again on every load.
+- **Home screen widgets** — toggle the stat row, hydration tracker, and weight
+  trend on the Home dashboard.
+
+Verified end-to-end (22 checks: the full peptide add/log/undo/inventory/history
+flow with reload persistence, live accent theming persisted across reload, and
+home-widget toggling) plus a clean multi-viewport pass.
+
 ## Status — Phase 7: AI Coach (Claude Sonnet)
 
 **More → AI Coach** — a real LLM coach powered by **Claude Sonnet**, not a

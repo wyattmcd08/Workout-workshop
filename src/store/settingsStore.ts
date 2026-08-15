@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { DailyTargets, UnitSystem, UserProfile } from '@/types'
+import type { AccentColor, DailyTargets, HomeWidgets, UnitSystem, UserProfile } from '@/types'
 import { DEFAULT_PROFILE } from '@/types'
 
 interface SettingsState {
@@ -10,6 +10,8 @@ interface SettingsState {
   setTargets: (targets: DailyTargets) => void
   setWeeklyWorkoutGoal: (goal: number) => void
   setDefaultRestSeconds: (seconds: number) => void
+  setAccentColor: (accentColor: AccentColor) => void
+  setHomeWidget: (key: keyof HomeWidgets, visible: boolean) => void
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -24,6 +26,12 @@ export const useSettingsStore = create<SettingsState>()(
         set((state) => ({ profile: { ...state.profile, weeklyWorkoutGoal } })),
       setDefaultRestSeconds: (defaultRestSeconds) =>
         set((state) => ({ profile: { ...state.profile, defaultRestSeconds } })),
+      setAccentColor: (accentColor) =>
+        set((state) => ({ profile: { ...state.profile, accentColor } })),
+      setHomeWidget: (key, visible) =>
+        set((state) => ({
+          profile: { ...state.profile, homeWidgets: { ...state.profile.homeWidgets, [key]: visible } },
+        })),
     }),
     {
       name: 'dialed-dawg-settings',
@@ -32,7 +40,12 @@ export const useSettingsStore = create<SettingsState>()(
         const stored = (persisted as Partial<SettingsState> | undefined)?.profile
         return {
           ...current,
-          profile: { ...DEFAULT_PROFILE, ...stored, targets: { ...DEFAULT_PROFILE.targets, ...stored?.targets } },
+          profile: {
+            ...DEFAULT_PROFILE,
+            ...stored,
+            targets: { ...DEFAULT_PROFILE.targets, ...stored?.targets },
+            homeWidgets: { ...DEFAULT_PROFILE.homeWidgets, ...stored?.homeWidgets },
+          },
         }
       },
     },

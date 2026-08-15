@@ -39,7 +39,12 @@ const MODULES: ModuleRow[] = [
     icon: SparklesIcon,
     to: '/more/coach',
   },
-  { label: 'Peptides', description: 'Dosing, schedules, inventory', icon: BeakerIcon },
+  {
+    label: 'Peptides',
+    description: 'Dosing, schedules, inventory',
+    icon: BeakerIcon,
+    to: '/more/peptides',
+  },
   {
     label: 'Analytics',
     description: 'Strength trends, volume, plateau watch',

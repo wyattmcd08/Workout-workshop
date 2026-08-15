@@ -1,5 +1,7 @@
 import { Suspense, lazy, useEffect } from 'react'
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { useSettingsStore } from '@/store/settingsStore'
+import { applyAccentColor } from '@/utils/accent'
 import { AppShell } from './AppShell'
 
 const HomePage = lazy(() => import('@/pages/HomePage'))
@@ -16,12 +18,15 @@ const ExerciseAnalyticsPage = lazy(() => import('@/pages/ExerciseAnalyticsPage')
 const MealPrepPage = lazy(() => import('@/pages/MealPrepPage'))
 const CalendarPage = lazy(() => import('@/pages/CalendarPage'))
 const CoachPage = lazy(() => import('@/pages/CoachPage'))
+const PeptidesPage = lazy(() => import('@/pages/PeptidesPage'))
 
 function RouteFallback() {
   return <div className="min-h-dvh bg-bg" aria-hidden />
 }
 
 export default function App() {
+  const accentColor = useSettingsStore((s) => s.profile.accentColor)
+
   useEffect(() => {
     // Ask iOS to keep our localStorage/caches from being evicted under
     // storage pressure. Best-effort; ignored where unsupported.
@@ -29,6 +34,11 @@ export default function App() {
       navigator.storage.persist().catch(() => undefined)
     }
   }, [])
+
+  // Re-theme the app whenever the accent preference changes.
+  useEffect(() => {
+    applyAccentColor(accentColor)
+  }, [accentColor])
 
   return (
     <HashRouter>
@@ -49,6 +59,7 @@ export default function App() {
             <Route path="more/meal-prep" element={<MealPrepPage />} />
             <Route path="more/calendar" element={<CalendarPage />} />
             <Route path="more/coach" element={<CoachPage />} />
+            <Route path="more/peptides" element={<PeptidesPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
