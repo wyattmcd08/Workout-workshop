@@ -41,7 +41,12 @@ const MODULES: ModuleRow[] = [
     icon: ChartPieIcon,
     to: '/more/analytics',
   },
-  { label: 'Calendar', description: 'Everything on one timeline', icon: CalendarDaysIcon },
+  {
+    label: 'Calendar',
+    description: 'Everything on one timeline',
+    icon: CalendarDaysIcon,
+    to: '/more/calendar',
+  },
 ]
 
 export default function MorePage() {

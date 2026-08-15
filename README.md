@@ -4,6 +4,20 @@ An all-in-one fitness operating system for iPhone, built as an offline-capable P
 Workouts, recovery, nutrition, hydration, and body metrics feed one connected local
 data layer — designed to grow into meal prep, AI coaching, analytics, and more.
 
+## Status — Phase 6: Calendar
+
+**More → Calendar** — everything on one timeline. A month grid with prev/next
+navigation and a Today jump; each day shows color-coded indicator dots for
+workouts (green), nutrition (orange), weigh-ins (blue), and planned meals
+(purple). Tapping a day opens a detail panel summarizing that day: workouts
+(sets + volume), calories/protein, weigh-in, and planned meals. It aggregates
+the existing data store reactively — no new data model. Verified end-to-end
+(8 checks: rendering, day detail for logged + planned days, indicator-dot
+count, month navigation, Today jump) plus a clean 3-viewport pass.
+
+The remaining spec module is the **AI Coach** (Claude Sonnet via a serverless
+proxy), which needs an API key + function deploy to finish.
+
 ## Status — Phase 5: Workout session depth
 
 The active workout logger now has a pro-grade toolkit. Each exercise card has

@@ -14,6 +14,7 @@ const SettingsPage = lazy(() => import('@/pages/SettingsPage'))
 const AnalyticsPage = lazy(() => import('@/pages/AnalyticsPage'))
 const ExerciseAnalyticsPage = lazy(() => import('@/pages/ExerciseAnalyticsPage'))
 const MealPrepPage = lazy(() => import('@/pages/MealPrepPage'))
+const CalendarPage = lazy(() => import('@/pages/CalendarPage'))
 
 function RouteFallback() {
   return <div className="min-h-dvh bg-bg" aria-hidden />
@@ -45,6 +46,7 @@ export default function App() {
             <Route path="more/analytics" element={<AnalyticsPage />} />
             <Route path="more/analytics/:exerciseId" element={<ExerciseAnalyticsPage />} />
             <Route path="more/meal-prep" element={<MealPrepPage />} />
+            <Route path="more/calendar" element={<CalendarPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
