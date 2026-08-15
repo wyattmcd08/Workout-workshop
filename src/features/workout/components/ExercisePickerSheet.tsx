@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
-import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
+import { MagnifyingGlassIcon, PlusIcon } from '@heroicons/react/24/outline'
 import { Sheet } from '@/components/ui/Sheet'
 import type { Exercise, MuscleGroup } from '@/types'
 import { MUSCLE_LABELS } from '@/types'
 import { cn } from '@/utils/cn'
 import { useExercises } from '../hooks/useWorkoutData'
+import { CustomExerciseSheet } from './CustomExerciseSheet'
 
 const FILTERS: Array<{ label: string; muscles: MuscleGroup[] }> = [
   { label: 'Chest', muscles: ['chest'] },
@@ -25,6 +26,7 @@ export function ExercisePickerSheet({ open, onClose, onSelect }: ExercisePickerS
   const exercises = useExercises()
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
 
   const visible = useMemo(() => {
     if (!exercises) return []
@@ -95,6 +97,21 @@ export function ExercisePickerSheet({ open, onClose, onSelect }: ExercisePickerS
           </li>
         ) : null}
       </ul>
+
+      <button
+        type="button"
+        onClick={() => setCreating(true)}
+        className="mt-3 flex h-11 w-full items-center justify-center gap-1.5 rounded-control bg-surface-sunken text-[14px] font-semibold text-accent"
+      >
+        <PlusIcon className="size-4.5" />
+        Create custom exercise
+      </button>
+
+      <CustomExerciseSheet
+        open={creating}
+        onClose={() => setCreating(false)}
+        onCreated={(exercise) => onSelect(exercise)}
+      />
     </Sheet>
   )
 }

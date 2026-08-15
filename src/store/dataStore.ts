@@ -57,6 +57,9 @@ interface DataActions {
   addWorkout: (workout: Workout) => void
   applyWorkoutFatigue: (exercises: WorkoutExercise[], completedAt: number) => void
 
+  addCustomExercise: (exercise: Exercise) => void
+  deleteCustomExercise: (id: string) => void
+
   addTemplate: (template: WorkoutTemplate) => void
   updateTemplate: (id: string, patch: Partial<WorkoutTemplate>) => void
   deleteTemplate: (id: string) => void
@@ -154,6 +157,11 @@ export const useDataStore = create<DataState>()(
             completedAt,
           ),
         })),
+
+      addCustomExercise: (exercise) =>
+        set((s) => ({ customExercises: [...s.customExercises, exercise] })),
+      deleteCustomExercise: (id) =>
+        set((s) => ({ customExercises: s.customExercises.filter((e) => e.id !== id) })),
 
       addTemplate: (template) => set((s) => ({ templates: [...s.templates, template] })),
       updateTemplate: (id, patch) =>

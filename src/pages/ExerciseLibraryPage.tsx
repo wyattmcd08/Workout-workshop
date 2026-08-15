@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react'
-import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
+import { MagnifyingGlassIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { Screen } from '@/components/ui/Screen'
+import { CustomExerciseSheet } from '@/features/workout/components/CustomExerciseSheet'
 import { useExercises } from '@/features/workout/hooks/useWorkoutData'
+import { useDataStore } from '@/store/dataStore'
 import type { MuscleGroup } from '@/types'
 import { MUSCLE_LABELS } from '@/types'
 import { cn } from '@/utils/cn'
@@ -18,8 +20,10 @@ const FILTERS: Array<{ label: string; muscles: MuscleGroup[] }> = [
 
 export default function ExerciseLibraryPage() {
   const exercises = useExercises()
+  const deleteCustomExercise = useDataStore((s) => s.deleteCustomExercise)
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState('All')
+  const [creating, setCreating] = useState(false)
 
   const visible = useMemo(() => {
     if (!exercises) return []
@@ -68,13 +72,35 @@ export default function ExerciseLibraryPage() {
         {visible.map((exercise, index) => (
           <li
             key={exercise.id}
-            className={cn('px-4 py-3.5', index > 0 && 'border-t border-divider')}
+            className={cn(
+              'flex items-center gap-3 px-4 py-3.5',
+              index > 0 && 'border-t border-divider',
+            )}
           >
-            <p className="text-[15px] font-semibold">{exercise.name}</p>
-            <p className="mt-0.5 text-[12px] text-content-tertiary capitalize">
-              {exercise.equipment} ·{' '}
-              {exercise.primaryMuscles.map((m) => MUSCLE_LABELS[m]).join(', ')}
-            </p>
+            <div className="min-w-0 flex-1">
+              <p className="flex items-center gap-1.5 text-[15px] font-semibold">
+                <span className="truncate">{exercise.name}</span>
+                {exercise.isCustom ? (
+                  <span className="shrink-0 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-accent uppercase">
+                    Custom
+                  </span>
+                ) : null}
+              </p>
+              <p className="mt-0.5 text-[12px] text-content-tertiary capitalize">
+                {exercise.equipment} ·{' '}
+                {exercise.primaryMuscles.map((m) => MUSCLE_LABELS[m]).join(', ')}
+              </p>
+            </div>
+            {exercise.isCustom ? (
+              <button
+                type="button"
+                aria-label={`Delete ${exercise.name}`}
+                onClick={() => deleteCustomExercise(exercise.id)}
+                className="flex size-9 shrink-0 items-center justify-center rounded-xl text-content-tertiary"
+              >
+                <TrashIcon className="size-4.5" />
+              </button>
+            ) : null}
           </li>
         ))}
         {exercises && visible.length === 0 ? (
@@ -83,6 +109,17 @@ export default function ExerciseLibraryPage() {
           </li>
         ) : null}
       </ul>
+
+      <button
+        type="button"
+        onClick={() => setCreating(true)}
+        className="mt-3 flex h-12 w-full items-center justify-center gap-1.5 rounded-control bg-surface text-[15px] font-semibold text-accent"
+      >
+        <PlusIcon className="size-5" />
+        Create custom exercise
+      </button>
+
+      <CustomExerciseSheet open={creating} onClose={() => setCreating(false)} />
     </Screen>
   )
 }

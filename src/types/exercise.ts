@@ -10,6 +10,28 @@ export type Equipment =
   | 'band'
   | 'other'
 
+export const EQUIPMENT_OPTIONS: readonly Equipment[] = [
+  'barbell',
+  'dumbbell',
+  'machine',
+  'cable',
+  'bodyweight',
+  'kettlebell',
+  'band',
+  'other',
+]
+
+export const EQUIPMENT_LABELS: Record<Equipment, string> = {
+  barbell: 'Barbell',
+  dumbbell: 'Dumbbell',
+  machine: 'Machine',
+  cable: 'Cable',
+  bodyweight: 'Bodyweight',
+  kettlebell: 'Kettlebell',
+  band: 'Band',
+  other: 'Other',
+}
+
 export type MovementPattern =
   | 'horizontal-push'
   | 'vertical-push'
